@@ -1,3 +1,4 @@
+import { SupportedLanguage, UserType } from "@prisma/client";
 import {
   IsEmail,
   IsEnum,
@@ -8,7 +9,6 @@ import {
   MaxLength,
   MinLength,
 } from "class-validator";
-import { SupportedLanguage, UserType } from "@prisma/client";
 
 /** Matricule format: 1–4 digits, 1 or 2 dot-separated groups. */
 const MATRICULE_REGEX = /^\d{1,4}(\.\d{1,4}){1,2}$/;

@@ -1,4 +1,5 @@
 import { Injectable, Logger } from "@nestjs/common";
+
 import { PrismaService } from "../../prisma/prisma.service";
 
 @Injectable()
@@ -24,7 +25,11 @@ export class PermissionsService {
 
     // Get all active role assignments for this user
     const assignments = await this.prisma.userRoleAssignment.findMany({
-      where: { userId, isActive: true, OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }] },
+      where: {
+        userId,
+        isActive: true,
+        OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
+      },
       include: {
         role: {
           include: {
@@ -53,7 +58,9 @@ export class PermissionsService {
           },
         });
 
-        systemRole?.permissions.forEach((rp) => permissionSet.add(rp.permission.key));
+        systemRole?.permissions.forEach((rp: { permission: { key: string } }) =>
+          permissionSet.add(rp.permission.key),
+        );
       }
     } else {
       for (const assignment of assignments) {
@@ -74,7 +81,9 @@ export class PermissionsService {
   }
 
   /** List all permissions in the system. */
-  async findAll(): Promise<{ id: string; key: string; displayName: string; resource: string; action: string }[]> {
+  async findAll(): Promise<
+    { id: string; key: string; displayName: string; resource: string; action: string }[]
+  > {
     return this.prisma.permission.findMany({
       select: { id: true, key: true, displayName: true, resource: true, action: true },
       orderBy: [{ resource: "asc" }, { action: "asc" }],

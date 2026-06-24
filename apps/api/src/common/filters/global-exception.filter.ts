@@ -1,12 +1,8 @@
-import {
-  ArgumentsHost,
-  Catch,
-  ExceptionFilter,
-  HttpException,
-  HttpStatus,
-} from "@nestjs/common";
-import type { Request, Response } from "express";
+import { ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpStatus } from "@nestjs/common";
+// eslint-disable-next-line import/no-named-as-default
 import pino from "pino";
+
+import type { Request, Response } from "express";
 
 /**
  * Consistent error response shape for all API errors.
@@ -29,7 +25,7 @@ export interface ApiErrorResponse {
 
 const logger = pino({
   base: { service: "govsphere-api", context: "GlobalExceptionFilter" },
-  level: (process.env["LOG_LEVEL"] as string | undefined) ?? "info",
+  level: process.env["LOG_LEVEL"] ?? "info",
 });
 
 @Catch()

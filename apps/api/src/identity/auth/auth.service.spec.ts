@@ -1,18 +1,27 @@
 import { BadRequestException, UnauthorizedException } from "@nestjs/common";
-import { JwtService } from "@nestjs/jwt";
 import { ConfigService } from "@nestjs/config";
-import { Test, TestingModule } from "@nestjs/testing";
-import type { User, UserRole, UserStatus } from "@prisma/client";
+import { JwtService } from "@nestjs/jwt";
+import { Test, type TestingModule } from "@nestjs/testing";
 import * as bcrypt from "bcryptjs";
+
 import { AuthService } from "./auth.service";
+import { PrismaService } from "../../prisma/prisma.service";
 import { AuditService } from "../audit/audit.service";
 import { PermissionsService } from "../permissions/permissions.service";
 import { SessionsService } from "../sessions/sessions.service";
-import { PrismaService } from "../../prisma/prisma.service";
+
+import type { User, UserRole, UserStatus } from "@prisma/client";
 
 // ---------------------------------------------------------------------------
 // Mocks
 // ---------------------------------------------------------------------------
+
+// Pre-declare to avoid a circular self-reference in the $transaction initialiser.
+// TypeScript cannot infer the type of `mockPrisma` while the object is still
+// being built, so referencing it inside the `$transaction` callback produces
+// TS7022 (implicit any from circularity) and TS7024 (implicit any return type).
+// Solution: stub the mock first, build the object, then wire the implementation.
+const mockTransactionFn: jest.Mock = jest.fn();
 
 const mockPrisma = {
   user: {
@@ -44,8 +53,13 @@ const mockPrisma = {
     findMany: jest.fn(),
     create: jest.fn(),
   },
-  $transaction: jest.fn((fn: (tx: unknown) => Promise<unknown>) => fn(mockPrisma)),
+  $transaction: mockTransactionFn,
 };
+
+// Wire after mockPrisma is fully defined — no circularity, no implicit any.
+mockTransactionFn.mockImplementation(
+  <T>(fn: (tx: typeof mockPrisma) => Promise<T>): Promise<T> => fn(mockPrisma),
+);
 
 const mockJwtService = {
   sign: jest.fn().mockReturnValue("mocked-jwt-token"),
@@ -65,6 +79,21 @@ const mockPermissionsService = {
 };
 
 const mockSessionsService = {};
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Typed wrapper around expect.objectContaining.
+ * Returns T (the input shape) instead of the `any` that some @types/jest
+ * versions infer, so nested object-property assignments like
+ * `{ data: containing({...}) }` satisfy @typescript-eslint/no-unsafe-assignment.
+ * At runtime the value is still a Jest AsymmetricMatcher — behaviour is unchanged.
+ */
+function containing<T extends Record<string, unknown>>(obj: T): T {
+  return expect.objectContaining(obj) as T;
+}
 
 // ---------------------------------------------------------------------------
 // Fixtures
@@ -206,7 +235,7 @@ describe("AuthService", () => {
 
       expect(mockPrisma.user.update).toHaveBeenCalledWith(
         expect.objectContaining({
-          data: expect.objectContaining({ failedLoginCount: 0 }),
+          data: containing({ failedLoginCount: 0 }),
         }),
       );
     });
@@ -277,7 +306,7 @@ describe("AuthService", () => {
 
       expect(mockPrisma.user.update).toHaveBeenCalledWith(
         expect.objectContaining({
-          data: expect.objectContaining({ failedLoginCount: 3 }),
+          data: containing({ failedLoginCount: 3 }),
         }),
       );
     });
@@ -291,7 +320,7 @@ describe("AuthService", () => {
 
       expect(mockPrisma.user.update).toHaveBeenCalledWith(
         expect.objectContaining({
-          data: expect.objectContaining({ status: "LOCKED" }),
+          data: containing({ status: "LOCKED" }),
         }),
       );
     });
@@ -318,7 +347,10 @@ describe("AuthService", () => {
       mockPrisma.passwordResetToken.findUnique.mockResolvedValueOnce(null);
 
       await expect(
-        service.resetPassword({ token: "a".repeat(64), newPassword: "NewStr0ng!Pass" }, "127.0.0.1"),
+        service.resetPassword(
+          { token: "a".repeat(64), newPassword: "NewStr0ng!Pass" },
+          "127.0.0.1",
+        ),
       ).rejects.toThrow(BadRequestException);
     });
 
@@ -351,7 +383,10 @@ describe("AuthService", () => {
       mockPrisma.passwordHistory.findMany.mockResolvedValueOnce([{ passwordHash: oldHash }]);
 
       await expect(
-        service.resetPassword({ token: "a".repeat(64), newPassword: "Reused!Pass123" }, "127.0.0.1"),
+        service.resetPassword(
+          { token: "a".repeat(64), newPassword: "Reused!Pass123" },
+          "127.0.0.1",
+        ),
       ).rejects.toThrow(BadRequestException);
     });
   });
@@ -369,7 +404,7 @@ describe("AuthService", () => {
       expect(mockPrisma.userSession.updateMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { id: "session-1", userId: "user-123" },
-          data: expect.objectContaining({ isActive: false }),
+          data: containing({ isActive: false }),
         }),
       );
     });

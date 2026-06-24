@@ -13,8 +13,8 @@
  * @see https://docs.nestjs.com/techniques/caching
  */
 
-import { Global, Module } from "@nestjs/common";
 import { CacheModule as NestCacheModule } from "@nestjs/cache-manager";
+import { Global, Module } from "@nestjs/common";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 
 @Global()
@@ -23,7 +23,7 @@ import { ConfigModule, ConfigService } from "@nestjs/config";
     NestCacheModule.registerAsync({
       isGlobal: true,
       imports: [ConfigModule],
-      useFactory: (configService: ConfigService) => ({
+      useFactory: (_configService: ConfigService) => ({
         // TODO Sprint 2: Replace with Redis store:
         //   store: redisStore,
         //   host: configService.get('REDIS_HOST'),

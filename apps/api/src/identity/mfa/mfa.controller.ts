@@ -10,13 +10,15 @@ import {
   Res,
   UseGuards,
 } from "@nestjs/common";
-import type { Request, Response } from "express";
-import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
-import { Public } from "../../common/decorators/public.decorator";
-import { CurrentUser } from "../../common/decorators/current-user.decorator";
-import type { AuthenticatedUser } from "../../common/types/auth.types";
-import { MfaService } from "./mfa.service";
+
 import { DisableMfaDto, VerifyMfaDto, VerifySetupDto } from "./dto/verify-mfa.dto";
+import { MfaService } from "./mfa.service";
+import { CurrentUser } from "../../common/decorators/current-user.decorator";
+import { Public } from "../../common/decorators/public.decorator";
+import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
+
+import type { AuthenticatedUser } from "../../common/types/auth.types";
+import type { Request, Response } from "express";
 
 const REFRESH_COOKIE = "govsphere_refresh";
 const COOKIE_OPTIONS = {
@@ -50,7 +52,10 @@ export class MfaController {
   ): Promise<{ backupCodes: string[]; message: string }> {
     const ip = this.getIp(req);
     const result = await this.mfaService.confirmSetup(user.id, dto.code, ip);
-    return { ...result, message: "MFA enabled. Save your backup codes — they will not be shown again." };
+    return {
+      ...result,
+      message: "MFA enabled. Save your backup codes — they will not be shown again.",
+    };
   }
 
   /** Verify MFA challenge during login (public — challenge token provides auth). */
@@ -104,6 +109,8 @@ export class MfaController {
   }
 
   private getIp(req: Request): string {
-    return (req.headers["x-forwarded-for"] as string | undefined)?.split(",")[0]?.trim() ?? req.ip ?? "";
+    return (
+      (req.headers["x-forwarded-for"] as string | undefined)?.split(",")[0]?.trim() ?? req.ip ?? ""
+    );
   }
 }

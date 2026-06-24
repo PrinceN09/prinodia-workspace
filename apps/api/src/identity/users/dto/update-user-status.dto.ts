@@ -1,5 +1,5 @@
-import { IsEnum, IsOptional, IsString, MaxLength } from "class-validator";
 import { UserStatus } from "@prisma/client";
+import { IsEnum, IsOptional, IsString, MaxLength } from "class-validator";
 
 const SETTABLE_STATUSES = [
   UserStatus.ACTIVE,

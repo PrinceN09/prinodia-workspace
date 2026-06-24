@@ -1,6 +1,7 @@
 import { Module } from "@nestjs/common";
-import { UsersService } from "./users.service";
+
 import { UsersController } from "./users.controller";
+import { UsersService } from "./users.service";
 import { AuditModule } from "../audit/audit.module";
 import { PermissionsModule } from "../permissions/permissions.module";
 

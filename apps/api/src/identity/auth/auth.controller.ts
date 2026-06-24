@@ -9,16 +9,18 @@ import {
   Res,
   UseGuards,
 } from "@nestjs/common";
-import type { Request, Response } from "express";
-import { Public } from "../../common/decorators/public.decorator";
-import { CurrentUser } from "../../common/decorators/current-user.decorator";
-import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
-import type { AuthenticatedUser } from "../../common/types/auth.types";
+
 import { AuthService } from "./auth.service";
-import { LoginDto } from "./dto/login.dto";
 import { ForgotPasswordDto } from "./dto/forgot-password.dto";
+import { LoginDto } from "./dto/login.dto";
 import { ResetPasswordDto } from "./dto/reset-password.dto";
+import { CurrentUser } from "../../common/decorators/current-user.decorator";
+import { Public } from "../../common/decorators/public.decorator";
+import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { UsersService } from "../users/users.service";
+
+import type { AuthenticatedUser } from "../../common/types/auth.types";
+import type { Request, Response } from "express";
 
 const REFRESH_COOKIE = "govsphere_refresh";
 
@@ -118,9 +120,13 @@ export class AuthController {
     let jti = "";
     if (parts.length === 3 && parts[1]) {
       try {
-        const payload = JSON.parse(Buffer.from(parts[1], "base64url").toString()) as { jti?: string };
+        const payload = JSON.parse(Buffer.from(parts[1], "base64url").toString()) as {
+          jti?: string;
+        };
         jti = payload.jti ?? "";
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
     }
 
     await this.authService.logout(user.id, user.sessionId, jti);

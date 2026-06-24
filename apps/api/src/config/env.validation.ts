@@ -23,10 +23,7 @@ const envSchema = z.object({
     .startsWith("postgresql://", "DATABASE_URL must be a PostgreSQL connection string"),
 
   // ── Redis ──────────────────────────────────────────────────────────────────
-  REDIS_URL: z
-    .string()
-    .min(1, "REDIS_URL is required")
-    .default("redis://localhost:6379"),
+  REDIS_URL: z.string().min(1, "REDIS_URL is required").default("redis://localhost:6379"),
   REDIS_HOST: z.string().default("localhost"),
   REDIS_PORT: z.coerce.number().int().positive().default(6379),
   REDIS_PASSWORD: z.string().optional(),
@@ -94,9 +91,7 @@ const envSchema = z.object({
   BCRYPT_ROUNDS: z.coerce.number().int().min(10).max(14).default(12),
 
   // ── Logging ────────────────────────────────────────────────────────────────
-  LOG_LEVEL: z
-    .enum(["trace", "debug", "info", "warn", "error", "fatal"])
-    .default("info"),
+  LOG_LEVEL: z.enum(["trace", "debug", "info", "warn", "error", "fatal"]).default("info"),
   AUDIT_LOG_RETENTION_DAYS: z.coerce.number().int().positive().default(365),
 
   // ── File Upload ────────────────────────────────────────────────────────────

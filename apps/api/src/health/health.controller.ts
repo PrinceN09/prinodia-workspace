@@ -91,8 +91,6 @@ export class HealthController {
   @HealthCheck()
   @ApiOperation({ summary: "Database connectivity check" })
   database() {
-    return this.health.check([
-      () => this.prismaHealth.pingCheck("database", this.prisma),
-    ]);
+    return this.health.check([() => this.prismaHealth.pingCheck("database", this.prisma)]);
   }
 }

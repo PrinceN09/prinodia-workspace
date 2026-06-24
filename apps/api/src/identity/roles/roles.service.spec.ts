@@ -1,9 +1,11 @@
 import { BadRequestException, ForbiddenException, NotFoundException } from "@nestjs/common";
-import { Test, TestingModule } from "@nestjs/testing";
+import { Test, type TestingModule } from "@nestjs/testing";
+
 import { RolesService } from "./roles.service";
 import { PrismaService } from "../../prisma/prisma.service";
 import { AuditService } from "../audit/audit.service";
 import { PermissionsService } from "../permissions/permissions.service";
+
 import type { AuthenticatedUser } from "../../common/types/auth.types";
 
 const mockPrisma = {
@@ -38,7 +40,6 @@ const ministryAdmin: AuthenticatedUser = {
 };
 
 const employeeRole = { id: "role-employee", name: "EMPLOYEE", weight: 10 };
-const ministryAdminRole = { id: "role-min-admin", name: "MINISTRY_ADMIN", weight: 70 };
 const superAdminRole = { id: "role-super", name: "SUPER_ADMIN", weight: 100 };
 
 describe("RolesService", () => {
@@ -77,7 +78,12 @@ describe("RolesService", () => {
       mockPrisma.userRoleAssignment.findFirst.mockResolvedValueOnce(null);
 
       await expect(
-        service.assignRoleToUser("target-user", { roleId: employeeRole.id }, superAdmin, "127.0.0.1"),
+        service.assignRoleToUser(
+          "target-user",
+          { roleId: employeeRole.id },
+          superAdmin,
+          "127.0.0.1",
+        ),
       ).resolves.toBeDefined();
     });
 
@@ -85,7 +91,12 @@ describe("RolesService", () => {
       mockPrisma.role.findUnique.mockResolvedValueOnce(superAdminRole);
 
       await expect(
-        service.assignRoleToUser("target-user", { roleId: superAdminRole.id }, ministryAdmin, "127.0.0.1"),
+        service.assignRoleToUser(
+          "target-user",
+          { roleId: superAdminRole.id },
+          ministryAdmin,
+          "127.0.0.1",
+        ),
       ).rejects.toThrow(ForbiddenException);
     });
 
@@ -107,7 +118,12 @@ describe("RolesService", () => {
       mockPrisma.userRoleAssignment.findFirst.mockResolvedValueOnce({ id: "existing" });
 
       await expect(
-        service.assignRoleToUser("target-user", { roleId: employeeRole.id }, superAdmin, "127.0.0.1"),
+        service.assignRoleToUser(
+          "target-user",
+          { roleId: employeeRole.id },
+          superAdmin,
+          "127.0.0.1",
+        ),
       ).rejects.toThrow(BadRequestException);
     });
 
@@ -115,7 +131,12 @@ describe("RolesService", () => {
       mockPrisma.role.findUnique.mockResolvedValueOnce(employeeRole);
       mockPrisma.userRoleAssignment.findFirst.mockResolvedValueOnce(null);
 
-      await service.assignRoleToUser("target-user", { roleId: employeeRole.id }, superAdmin, "127.0.0.1");
+      await service.assignRoleToUser(
+        "target-user",
+        { roleId: employeeRole.id },
+        superAdmin,
+        "127.0.0.1",
+      );
 
       expect(mockAuditService.log).toHaveBeenCalledWith(
         expect.objectContaining({ action: "ROLE_ASSIGNED" }),
@@ -126,7 +147,12 @@ describe("RolesService", () => {
       mockPrisma.role.findUnique.mockResolvedValueOnce(employeeRole);
       mockPrisma.userRoleAssignment.findFirst.mockResolvedValueOnce(null);
 
-      await service.assignRoleToUser("target-user", { roleId: employeeRole.id }, superAdmin, "127.0.0.1");
+      await service.assignRoleToUser(
+        "target-user",
+        { roleId: employeeRole.id },
+        superAdmin,
+        "127.0.0.1",
+      );
 
       expect(mockPermissionsService.invalidateCache).toHaveBeenCalledWith("target-user");
     });

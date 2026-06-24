@@ -4,6 +4,8 @@
  * Run with: npx prisma db seed
  */
 
+import * as bcrypt from "bcryptjs";
+
 import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
@@ -217,6 +219,34 @@ async function main(): Promise<void> {
     }
 
     console.log(`    ✅ ${roleData.name} (weight: ${roleData.weight}, permissions: ${permIds.length})`);
+  }
+
+  // 3. Upsert Super Admin user
+  // Password is read from SEED_ADMIN_PASSWORD env var.
+  // Falls back to a placeholder — must be rotated before production use.
+  const adminEmail = "superadmin@govsphere.cd";
+  const rawPassword = process.env["SEED_ADMIN_PASSWORD"] ?? "GovSphere@Admin1!";
+  const passwordHash = await bcrypt.hash(rawPassword, 12);
+
+  await prisma.user.upsert({
+    where: { email: adminEmail },
+    update: {},
+    create: {
+      email: adminEmail,
+      matriculeNumber: "0.000.001",
+      firstName: "Platform",
+      lastName: "Admin",
+      displayName: "Platform Administrator",
+      passwordHash,
+      role: "SUPER_ADMIN",
+      userType: "IT_ADMINISTRATOR",
+      status: "ACTIVE",
+      passwordChangedAt: new Date(),
+    },
+  });
+  console.log(`  ✅ Super Admin: ${adminEmail} (role: SUPER_ADMIN)`);
+  if (!process.env["SEED_ADMIN_PASSWORD"]) {
+    console.warn("  ⚠️  Default seed password used — set SEED_ADMIN_PASSWORD before production use.");
   }
 
   console.log("🌱 Seed complete.");

@@ -1,20 +1,13 @@
-import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  Param,
-  Post,
-  Req,
-  UseGuards,
-} from "@nestjs/common";
-import type { Request } from "express";
+import { Body, Controller, Delete, Get, Param, Post, Req, UseGuards } from "@nestjs/common";
+
+import { RolesService, type AssignRoleDto } from "./roles.service";
+import { CurrentUser } from "../../common/decorators/current-user.decorator";
+import { RequirePermissions } from "../../common/decorators/permissions.decorator";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { PermissionsGuard } from "../../common/guards/permissions.guard";
-import { RequirePermissions } from "../../common/decorators/permissions.decorator";
-import { CurrentUser } from "../../common/decorators/current-user.decorator";
+
 import type { AuthenticatedUser } from "../../common/types/auth.types";
-import { RolesService, type AssignRoleDto } from "./roles.service";
+import type { Request } from "express";
 
 @Controller("v1")
 @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -41,7 +34,8 @@ export class RolesController {
     @CurrentUser() user: AuthenticatedUser,
     @Req() req: Request,
   ): Promise<unknown> {
-    const ip = (req.headers["x-forwarded-for"] as string | undefined)?.split(",")[0]?.trim() ?? req.ip ?? "";
+    const ip =
+      (req.headers["x-forwarded-for"] as string | undefined)?.split(",")[0]?.trim() ?? req.ip ?? "";
     return this.rolesService.assignRoleToUser(userId, dto, user, ip);
   }
 
@@ -53,7 +47,8 @@ export class RolesController {
     @CurrentUser() user: AuthenticatedUser,
     @Req() req: Request,
   ): Promise<{ message: string }> {
-    const ip = (req.headers["x-forwarded-for"] as string | undefined)?.split(",")[0]?.trim() ?? req.ip ?? "";
+    const ip =
+      (req.headers["x-forwarded-for"] as string | undefined)?.split(",")[0]?.trim() ?? req.ip ?? "";
     await this.rolesService.revokeRoleFromUser(userId, assignmentId, user, ip);
     return { message: "Role revoked" };
   }

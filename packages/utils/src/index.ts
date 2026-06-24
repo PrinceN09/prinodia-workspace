@@ -5,9 +5,10 @@
  * Pure functions with no framework dependencies.
  */
 
-import { formatDistanceToNow, format, isToday, isYesterday } from "date-fns";
+import { format, formatDistanceToNow, isToday, isYesterday } from "date-fns";
+import { enUS, fr } from "date-fns/locale";
+
 import type { Locale } from "date-fns";
-import { fr, enUS } from "date-fns/locale";
 
 // ─── Date Utilities ───────────────────────────────────────────────────────────
 

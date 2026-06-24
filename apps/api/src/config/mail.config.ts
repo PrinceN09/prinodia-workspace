@@ -18,8 +18,9 @@ export const mailConfig = registerAs(
     host: process.env["SMTP_HOST"] ?? "localhost",
     port: parseInt(process.env["SMTP_PORT"] ?? "1025", 10),
     secure: process.env["SMTP_SECURE"] === "true",
-    user: process.env["SMTP_USER"] ?? undefined,
-    password: process.env["SMTP_PASSWORD"] ?? undefined,
+    // exactOptionalPropertyTypes: only include user/password when defined.
+    ...(process.env["SMTP_USER"] !== undefined && { user: process.env["SMTP_USER"] }),
+    ...(process.env["SMTP_PASSWORD"] !== undefined && { password: process.env["SMTP_PASSWORD"] }),
     from: {
       name: process.env["SMTP_FROM_NAME"] ?? "GovSphere",
       email: process.env["SMTP_FROM_EMAIL"] ?? "noreply@govsphere.gouv.cd",

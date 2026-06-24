@@ -8,11 +8,13 @@ import {
   Req,
   UseGuards,
 } from "@nestjs/common";
-import type { Request } from "express";
-import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
-import { CurrentUser } from "../../common/decorators/current-user.decorator";
-import type { AuthenticatedUser } from "../../common/types/auth.types";
+
 import { SessionsService } from "./sessions.service";
+import { CurrentUser } from "../../common/decorators/current-user.decorator";
+import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
+
+import type { AuthenticatedUser } from "../../common/types/auth.types";
+import type { Request } from "express";
 
 @Controller("v1/sessions")
 @UseGuards(JwtAuthGuard)
@@ -31,7 +33,8 @@ export class SessionsController {
     @CurrentUser() user: AuthenticatedUser,
     @Req() req: Request,
   ): Promise<{ message: string }> {
-    const ip = (req.headers["x-forwarded-for"] as string | undefined)?.split(",")[0]?.trim() ?? req.ip ?? "";
+    const ip =
+      (req.headers["x-forwarded-for"] as string | undefined)?.split(",")[0]?.trim() ?? req.ip ?? "";
     await this.sessionsService.revokeSession(id, user, ip);
     return { message: "Session revoked" };
   }

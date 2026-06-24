@@ -1,17 +1,16 @@
-import {
-  BadRequestException,
-  Injectable,
-  UnauthorizedException,
-} from "@nestjs/common";
+import * as crypto from "crypto";
+
+import { BadRequestException, Injectable, UnauthorizedException } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { JwtService } from "@nestjs/jwt";
 import * as bcrypt from "bcryptjs";
-import * as crypto from "crypto";
 import { authenticator } from "otplib";
+
 import { PrismaService } from "../../prisma/prisma.service";
 import { AuditService } from "../audit/audit.service";
-import type { AuthService, LoginResult } from "../auth/auth.service";
+
 import type { MfaChallengePayload } from "../../common/types/auth.types";
+import type { AuthService, LoginResult } from "../auth/auth.service";
 
 const BACKUP_CODE_COUNT = 8;
 const BCRYPT_ROUNDS = 10; // Lower for backup codes (not main password)
@@ -63,9 +62,13 @@ export class MfaService {
       // Dynamic import — qrcode is optional
       const QRCode = await import("qrcode").catch(() => null);
       if (QRCode) {
-        qrCode = await (QRCode as { toDataURL: (s: string) => Promise<string> }).toDataURL(otpauthUri);
+        qrCode = await (QRCode as { toDataURL: (s: string) => Promise<string> }).toDataURL(
+          otpauthUri,
+        );
       }
-    } catch { /* qrcode not installed — use URI fallback */ }
+    } catch {
+      /* qrcode not installed — use URI fallback */
+    }
 
     return { secret, otpauthUri, qrCode };
   }
@@ -90,7 +93,10 @@ export class MfaService {
 
     const valid = authenticator.check(code, pending.secret);
     if (!valid) {
-      throw new BadRequestException({ error: "INVALID_CODE", message: "Invalid authenticator code" });
+      throw new BadRequestException({
+        error: "INVALID_CODE",
+        message: "Invalid authenticator code",
+      });
     }
 
     // Encrypt secret before storing
@@ -121,7 +127,7 @@ export class MfaService {
       });
     });
 
-    await this.auditService.log({
+    this.auditService.log({
       userId,
       action: "MFA_ENABLED",
       entityType: "USER",
@@ -148,17 +154,25 @@ export class MfaService {
     // Validate challenge token
     let payload: MfaChallengePayload;
     try {
-      const publicKey = this.configService.getOrThrow<string>("JWT_PUBLIC_KEY").replace(/\\n/g, "\n");
+      const publicKey = this.configService
+        .getOrThrow<string>("JWT_PUBLIC_KEY")
+        .replace(/\\n/g, "\n");
       payload = this.jwtService.verify<MfaChallengePayload>(challengeToken, {
         algorithms: ["RS256"],
         publicKey,
       });
     } catch {
-      throw new UnauthorizedException({ error: "CHALLENGE_EXPIRED", message: "MFA challenge has expired" });
+      throw new UnauthorizedException({
+        error: "CHALLENGE_EXPIRED",
+        message: "MFA challenge has expired",
+      });
     }
 
     if (payload.type !== "mfa_challenge") {
-      throw new UnauthorizedException({ error: "INVALID_TOKEN", message: "Invalid challenge token" });
+      throw new UnauthorizedException({
+        error: "INVALID_TOKEN",
+        message: "Invalid challenge token",
+      });
     }
 
     const user = await this.prisma.user.findUniqueOrThrow({
@@ -176,7 +190,7 @@ export class MfaService {
       const secret = this.decryptSecret(user.mfaSecret);
       verified = authenticator.check(code, secret);
 
-      await this.auditService.log({
+      this.auditService.log({
         userId: payload.sub,
         action: verified ? "MFA_CHALLENGE_SUCCESS" : "MFA_CHALLENGE_FAILED",
         entityType: "USER",
@@ -215,7 +229,10 @@ export class MfaService {
     const valid = authenticator.check(code, secret);
 
     if (!valid) {
-      throw new BadRequestException({ error: "INVALID_CODE", message: "Invalid code. MFA not disabled." });
+      throw new BadRequestException({
+        error: "INVALID_CODE",
+        message: "Invalid code. MFA not disabled.",
+      });
     }
 
     await this.prisma.$transaction(async (tx) => {
@@ -226,7 +243,7 @@ export class MfaService {
       await tx.mfaBackupCode.deleteMany({ where: { userId } });
     });
 
-    await this.auditService.log({
+    this.auditService.log({
       userId,
       action: "MFA_DISABLED",
       entityType: "USER",
@@ -261,7 +278,7 @@ export class MfaService {
         });
 
         const remaining = codes.length - 1;
-        await this.auditService.log({
+        this.auditService.log({
           userId,
           action: "MFA_BACKUP_CODE_USED",
           entityType: "USER",
@@ -275,7 +292,7 @@ export class MfaService {
       }
     }
 
-    await this.auditService.log({
+    this.auditService.log({
       userId,
       action: "MFA_CHALLENGE_FAILED",
       entityType: "USER",
@@ -290,16 +307,18 @@ export class MfaService {
 
   private generateBackupCode(): string {
     const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-    const half = Array.from({ length: 5 }, () => chars[crypto.randomInt(chars.length)] ?? "A").join("");
-    const half2 = Array.from({ length: 5 }, () => chars[crypto.randomInt(chars.length)] ?? "A").join("");
+    const half = Array.from({ length: 5 }, () => chars[crypto.randomInt(chars.length)] ?? "A").join(
+      "",
+    );
+    const half2 = Array.from(
+      { length: 5 },
+      () => chars[crypto.randomInt(chars.length)] ?? "A",
+    ).join("");
     return `${half}-${half2}`;
   }
 
   private encryptSecret(plaintext: string): string {
-    const key = Buffer.from(
-      this.configService.getOrThrow<string>("MFA_ENCRYPTION_KEY"),
-      "hex",
-    );
+    const key = Buffer.from(this.configService.getOrThrow<string>("MFA_ENCRYPTION_KEY"), "hex");
     const iv = crypto.randomBytes(12);
     const cipher = crypto.createCipheriv(ENC_ALG, key, iv);
     const enc = Buffer.concat([cipher.update(plaintext, "utf8"), cipher.final()]);
@@ -314,10 +333,7 @@ export class MfaService {
       throw new Error("Invalid encrypted secret format");
     }
     const [ivHex, tagHex, encHex] = parts;
-    const key = Buffer.from(
-      this.configService.getOrThrow<string>("MFA_ENCRYPTION_KEY"),
-      "hex",
-    );
+    const key = Buffer.from(this.configService.getOrThrow<string>("MFA_ENCRYPTION_KEY"), "hex");
     const decipher = crypto.createDecipheriv(ENC_ALG, key, Buffer.from(ivHex, "hex"));
     decipher.setAuthTag(Buffer.from(tagHex, "hex"));
     const dec = Buffer.concat([decipher.update(Buffer.from(encHex, "hex")), decipher.final()]);

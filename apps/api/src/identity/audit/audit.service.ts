@@ -1,6 +1,8 @@
 import { Injectable, Logger } from "@nestjs/common";
-import type { AuditAction } from "@prisma/client";
+
 import { PrismaService } from "../../prisma/prisma.service";
+
+import type { AuditAction } from "@prisma/client";
 
 export interface AuditLogInput {
   userId?: string;
@@ -73,7 +75,7 @@ export class AuditService {
     if (params.entityType) where["entityType"] = params.entityType;
     if (params.entityId) where["entityId"] = params.entityId;
 
-    if (params.startDate || params.endDate) {
+    if (params.startDate ?? params.endDate) {
       where["createdAt"] = {
         ...(params.startDate ? { gte: params.startDate } : {}),
         ...(params.endDate ? { lte: params.endDate } : {}),

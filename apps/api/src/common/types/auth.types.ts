@@ -17,10 +17,10 @@ export interface AuthenticatedUser {
 
 /** Access token JWT payload (RS256). */
 export interface AccessTokenPayload {
-  sub: string;          // userId
-  jti: string;          // unique token id (for blacklisting)
-  role: UserRole;       // highest active role
-  weight: number;       // role weight
+  sub: string; // userId
+  jti: string; // unique token id (for blacklisting)
+  role: UserRole; // highest active role
+  weight: number; // role weight
   ministryId: string | null;
   departmentId: string | null;
   divisionId: string | null;
@@ -31,17 +31,17 @@ export interface AccessTokenPayload {
 
 /** Refresh token JWT payload (RS256). */
 export interface RefreshTokenPayload {
-  sub: string;          // userId
+  sub: string; // userId
   jti: string;
   sessionId: string;
-  family: string;       // token family for reuse detection
+  family: string; // token family for reuse detection
   iat: number;
   exp: number;
 }
 
 /** Short-lived MFA challenge token payload. */
 export interface MfaChallengePayload {
-  sub: string;          // userId
+  sub: string; // userId
   type: "mfa_challenge";
   iat: number;
   exp: number;

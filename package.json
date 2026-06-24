@@ -19,6 +19,8 @@
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md,yaml,yml}\" --ignore-path .gitignore",
     "db:generate": "turbo run db:generate",
     "db:migrate": "turbo run db:migrate",
+    "db:migrate:deploy": "turbo run db:migrate:deploy",
+    "db:seed": "turbo run db:seed",
     "db:studio": "turbo run db:studio",
     "docker:up": "docker compose -f docker-compose.yml up -d",
     "docker:down": "docker compose -f docker-compose.yml down",

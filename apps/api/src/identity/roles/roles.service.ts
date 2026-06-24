@@ -4,11 +4,13 @@ import {
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
-import type { UserRole } from "@prisma/client";
+
 import { PrismaService } from "../../prisma/prisma.service";
 import { AuditService } from "../audit/audit.service";
 import { PermissionsService } from "../permissions/permissions.service";
+
 import type { AuthenticatedUser } from "../../common/types/auth.types";
+import type { UserRole } from "@prisma/client";
 
 /** Role weight map — higher weight cannot be assigned by lower weight admin. */
 const ROLE_WEIGHTS: Record<UserRole, number> = {
@@ -131,7 +133,7 @@ export class RolesService {
 
     this.permissionsService.invalidateCache(targetUserId);
 
-    await this.auditService.log({
+    this.auditService.log({
       userId: assignedBy.id,
       action: "ROLE_ASSIGNED",
       entityType: "USER",
@@ -139,7 +141,11 @@ export class RolesService {
       metadata: {
         roleId: dto.roleId,
         roleName: role.name,
-        scope: { ministryId: dto.ministryId, departmentId: dto.departmentId, divisionId: dto.divisionId },
+        scope: {
+          ministryId: dto.ministryId,
+          departmentId: dto.departmentId,
+          divisionId: dto.divisionId,
+        },
       },
       ipAddress,
     });
@@ -159,7 +165,10 @@ export class RolesService {
     });
 
     if (!assignment) {
-      throw new NotFoundException({ error: "ASSIGNMENT_NOT_FOUND", message: "Role assignment not found" });
+      throw new NotFoundException({
+        error: "ASSIGNMENT_NOT_FOUND",
+        message: "Role assignment not found",
+      });
     }
 
     if (revokedBy.roleWeight <= assignment.role.weight) {
@@ -176,7 +185,7 @@ export class RolesService {
 
     this.permissionsService.invalidateCache(targetUserId);
 
-    await this.auditService.log({
+    this.auditService.log({
       userId: revokedBy.id,
       action: "ROLE_REMOVED",
       entityType: "USER",

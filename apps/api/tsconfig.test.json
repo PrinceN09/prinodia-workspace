@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  // Test-only tsconfig. Overrides module to CommonJS so ts-jest does not emit
+  // the "NodeNext module resolution requires isolatedModules" warning, while
+  // keeping emitDecoratorMetadata: true so NestJS DI works in unit tests.
+  // The production tsconfig.json (NodeNext) is NOT touched.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "CommonJS",
+    "moduleResolution": "Node"
+  }
+}

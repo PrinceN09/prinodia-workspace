@@ -13,7 +13,8 @@
  */
 
 import { Injectable, LoggerService, Scope } from "@nestjs/common";
-import pino from "pino";
+// eslint-disable-next-line import/no-named-as-default
+import pino, { stdTimeFunctions } from "pino";
 
 // Re-export so callers can use this type without importing pino directly
 export type LogLevel = "trace" | "debug" | "info" | "warn" | "error" | "fatal";
@@ -24,7 +25,7 @@ const pinoLogger = pino({
     service: "govsphere-api",
     env: process.env["NODE_ENV"] ?? "development",
   },
-  timestamp: pino.stdTimeFunctions.isoTime,
+  timestamp: stdTimeFunctions.isoTime,
   formatters: {
     level(label) {
       // Output "level": "info" instead of "level": 30 for Loki compatibility
@@ -38,34 +39,51 @@ export class AppLogger implements LoggerService {
   private context?: string;
 
   constructor(context?: string) {
-    this.context = context;
+    // exactOptionalPropertyTypes: never assign undefined explicitly to an optional
+    // property — omit the assignment entirely when context is not provided.
+    if (context !== undefined) {
+      this.context = context;
+    }
   }
 
   setContext(context: string): void {
     this.context = context;
   }
 
+  /**
+   * Builds the pino merging object.
+   * With exactOptionalPropertyTypes we must not set `context: undefined` explicitly.
+   * Only include the key when context is actually defined.
+   */
+  private buildMeta(meta?: Record<string, unknown>): Record<string, unknown> {
+    const base: Record<string, unknown> = {};
+    if (this.context !== undefined) {
+      base["context"] = this.context;
+    }
+    return { ...base, ...meta };
+  }
+
   log(message: string, meta?: Record<string, unknown>): void {
-    pinoLogger.info({ context: this.context, ...meta }, message);
+    pinoLogger.info(this.buildMeta(meta), message);
   }
 
   error(message: string, meta?: Record<string, unknown>): void {
-    pinoLogger.error({ context: this.context, ...meta }, message);
+    pinoLogger.error(this.buildMeta(meta), message);
   }
 
   warn(message: string, meta?: Record<string, unknown>): void {
-    pinoLogger.warn({ context: this.context, ...meta }, message);
+    pinoLogger.warn(this.buildMeta(meta), message);
   }
 
   debug(message: string, meta?: Record<string, unknown>): void {
-    pinoLogger.debug({ context: this.context, ...meta }, message);
+    pinoLogger.debug(this.buildMeta(meta), message);
   }
 
   verbose(message: string, meta?: Record<string, unknown>): void {
-    pinoLogger.trace({ context: this.context, ...meta }, message);
+    pinoLogger.trace(this.buildMeta(meta), message);
   }
 
   fatal(message: string, meta?: Record<string, unknown>): void {
-    pinoLogger.fatal({ context: this.context, ...meta }, message);
+    pinoLogger.fatal(this.buildMeta(meta), message);
   }
 }

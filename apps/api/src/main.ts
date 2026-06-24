@@ -14,8 +14,8 @@ import { VersioningType } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { NestFactory } from "@nestjs/core";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
-import * as cookieParser from "cookie-parser";
 import compression from "compression";
+import cookieParser from "cookie-parser";
 import helmet from "helmet";
 
 import { AppModule } from "./app.module";
@@ -72,10 +72,7 @@ async function bootstrap(): Promise<void> {
           "All endpoints require authentication (Bearer JWT) unless marked @Public().",
       )
       .setVersion("0.1.0")
-      .addBearerAuth(
-        { type: "http", scheme: "bearer", bearerFormat: "JWT" },
-        "access-token",
-      )
+      .addBearerAuth({ type: "http", scheme: "bearer", bearerFormat: "JWT" }, "access-token")
       .addCookieAuth("govsphere_refresh")
       .addTag("Auth", "Authentication — login, refresh, logout, password reset")
       .addTag("Users", "User management")

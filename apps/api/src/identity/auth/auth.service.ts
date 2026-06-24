@@ -1,26 +1,27 @@
-import {
-  BadRequestException,
-  Injectable,
-  Logger,
-  UnauthorizedException,
-} from "@nestjs/common";
+import * as crypto from "crypto";
+
+import { BadRequestException, Injectable, Logger, UnauthorizedException } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { JwtService } from "@nestjs/jwt";
-import type { UserRole, UserStatus } from "@prisma/client";
 import * as bcrypt from "bcryptjs";
-import * as crypto from "crypto";
+
 import { PrismaService } from "../../prisma/prisma.service";
 import { AuditService } from "../audit/audit.service";
 import { PermissionsService } from "../permissions/permissions.service";
-import type { SessionsService } from "../sessions/sessions.service";
+// Value import required — emitDecoratorMetadata needs the runtime class reference
+// for NestJS DI token resolution. `import type` erases it and breaks injection.
+// eslint-disable-next-line @typescript-eslint/consistent-type-imports
+import { SessionsService } from "../sessions/sessions.service";
+
+import type { ForgotPasswordDto } from "./dto/forgot-password.dto";
+import type { LoginDto } from "./dto/login.dto";
+import type { ResetPasswordDto } from "./dto/reset-password.dto";
 import type {
   AccessTokenPayload,
   MfaChallengePayload,
   RefreshTokenPayload,
 } from "../../common/types/auth.types";
-import type { LoginDto } from "./dto/login.dto";
-import type { ForgotPasswordDto } from "./dto/forgot-password.dto";
-import type { ResetPasswordDto } from "./dto/reset-password.dto";
+import type { UserRole, UserStatus } from "@prisma/client";
 
 /** Matricule regex: 1–4 digits, 1 or 2 dot-separated groups. */
 const MATRICULE_REGEX = /^\d{1,4}(\.\d{1,4}){1,2}$/;
@@ -126,7 +127,14 @@ export class AuthService {
 
     // 3. User not found — return same error as wrong password (prevent enumeration)
     if (!user) {
-      await this.recordLoginHistory(null, credentialLabel, false, "USER_NOT_FOUND", ipAddress, userAgent);
+      await this.recordLoginHistory(
+        null,
+        credentialLabel,
+        false,
+        "USER_NOT_FOUND",
+        ipAddress,
+        userAgent,
+      );
       throw new UnauthorizedException({
         error: "INVALID_CREDENTIALS",
         message: "Invalid credentials",
@@ -140,7 +148,13 @@ export class AuthService {
     const passwordValid = await bcrypt.compare(password, user.passwordHash);
 
     if (!passwordValid) {
-      await this.handleFailedLogin(user.id, credentialLabel, user.failedLoginCount, ipAddress, userAgent);
+      await this.handleFailedLogin(
+        user.id,
+        credentialLabel,
+        user.failedLoginCount,
+        ipAddress,
+        userAgent,
+      );
       throw new UnauthorizedException({
         error: "INVALID_CREDENTIALS",
         message: "Invalid credentials",
@@ -222,7 +236,18 @@ export class AuthService {
         isActive: true,
         tokenFamily: payload.family,
       },
-      include: { user: { select: { id: true, role: true, status: true, ministryId: true, departmentId: true, divisionId: true } } },
+      include: {
+        user: {
+          select: {
+            id: true,
+            role: true,
+            status: true,
+            ministryId: true,
+            departmentId: true,
+            divisionId: true,
+          },
+        },
+      },
     });
 
     if (!session) {
@@ -238,7 +263,10 @@ export class AuthService {
     }
 
     if (session.user.status !== "ACTIVE") {
-      throw new UnauthorizedException({ error: "ACCOUNT_INACTIVE", message: "Account is not active" });
+      throw new UnauthorizedException({
+        error: "ACCOUNT_INACTIVE",
+        message: "Account is not active",
+      });
     }
 
     // Issue new token pair (rotation)
@@ -263,7 +291,7 @@ export class AuthService {
       },
     });
 
-    await this.auditService.log({
+    this.auditService.log({
       userId: session.user.id,
       action: "TOKEN_REFRESH",
       entityType: "SESSION",
@@ -286,7 +314,7 @@ export class AuthService {
       data: { isActive: false, revokedAt: new Date() },
     });
 
-    await this.auditService.log({
+    this.auditService.log({
       userId,
       action: "LOGOUT",
       entityType: "SESSION",
@@ -301,7 +329,7 @@ export class AuthService {
       data: { isActive: false, revokedAt: new Date() },
     });
 
-    await this.auditService.log({
+    this.auditService.log({
       userId,
       action: "LOGOUT_ALL",
       entityType: "USER",
@@ -351,7 +379,7 @@ export class AuthService {
       },
     });
 
-    await this.auditService.log({
+    this.auditService.log({
       userId: user.id,
       action: "PASSWORD_RESET_REQUESTED",
       entityType: "USER",
@@ -425,7 +453,7 @@ export class AuthService {
       });
     });
 
-    await this.auditService.log({
+    this.auditService.log({
       userId: record.userId,
       action: "PASSWORD_RESET",
       entityType: "USER",
@@ -494,9 +522,16 @@ export class AuthService {
       },
     });
 
-    await this.recordLoginHistory(userId, credential, false, "INVALID_PASSWORD", ipAddress, userAgent);
+    await this.recordLoginHistory(
+      userId,
+      credential,
+      false,
+      "INVALID_PASSWORD",
+      ipAddress,
+      userAgent,
+    );
 
-    await this.auditService.log({
+    this.auditService.log({
       userId,
       action: "LOGIN_FAILED",
       entityType: "USER",
@@ -507,7 +542,7 @@ export class AuthService {
     });
 
     if (newStatus === "LOCKED") {
-      await this.auditService.log({
+      this.auditService.log({
         userId,
         action: "ACCOUNT_LOCKED",
         entityType: "USER",
@@ -582,7 +617,7 @@ export class AuthService {
       data: { refreshTokenJti },
     });
 
-    await this.auditService.log({
+    this.auditService.log({
       userId: user.id,
       action: "LOGIN_SUCCESS",
       entityType: "SESSION",
@@ -608,7 +643,7 @@ export class AuthService {
     };
   }
 
-  async issueTokenPair(
+  issueTokenPair(
     userId: string,
     role: UserRole,
     ministryId: string | null,
@@ -617,7 +652,9 @@ export class AuthService {
     sessionId: string,
     family: string,
   ): Promise<{ accessToken: string; refreshToken: string; refreshTokenJti: string }> {
-    const privateKey = this.configService.getOrThrow<string>("JWT_PRIVATE_KEY").replace(/\\n/g, "\n");
+    const privateKey = this.configService
+      .getOrThrow<string>("JWT_PRIVATE_KEY")
+      .replace(/\\n/g, "\n");
     const accessJti = crypto.randomUUID();
     const refreshJti = crypto.randomUUID();
 
@@ -654,20 +691,24 @@ export class AuthService {
     // Store hashed refresh JTI for session validation
     const refreshTokenJti = crypto.createHash("sha256").update(refreshJti).digest("hex");
 
-    return { accessToken, refreshToken, refreshTokenJti };
+    return Promise.resolve({ accessToken, refreshToken, refreshTokenJti });
   }
 
-  private async issueMfaChallengeToken(userId: string): Promise<string> {
-    const privateKey = this.configService.getOrThrow<string>("JWT_PRIVATE_KEY").replace(/\\n/g, "\n");
+  private issueMfaChallengeToken(userId: string): Promise<string> {
+    const privateKey = this.configService
+      .getOrThrow<string>("JWT_PRIVATE_KEY")
+      .replace(/\\n/g, "\n");
     const payload: Omit<MfaChallengePayload, "iat" | "exp"> = {
       sub: userId,
       type: "mfa_challenge",
     };
-    return this.jwtService.sign(payload, {
-      algorithm: "RS256",
-      privateKey,
-      expiresIn: "5m",
-    });
+    return Promise.resolve(
+      this.jwtService.sign(payload, {
+        algorithm: "RS256",
+        privateKey,
+        expiresIn: "5m",
+      }),
+    );
   }
 
   private validatePasswordPolicy(password: string): void {

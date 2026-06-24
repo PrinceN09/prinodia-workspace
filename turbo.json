@@ -62,9 +62,16 @@
     "db:migrate": {
       "cache": false
     },
+    "db:migrate:deploy": {
+      "cache": false
+    },
     "db:studio": {
       "cache": false,
       "persistent": true
+    },
+    "db:seed": {
+      // Never cache — seed is always a side-effectful DB write.
+      "cache": false
     }
   }
 }

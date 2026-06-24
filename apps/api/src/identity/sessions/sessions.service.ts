@@ -1,6 +1,8 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
+
 import { PrismaService } from "../../prisma/prisma.service";
 import { AuditService } from "../audit/audit.service";
+
 import type { AuthenticatedUser } from "../../common/types/auth.types";
 
 @Injectable()
@@ -12,9 +14,10 @@ export class SessionsService {
 
   /** List all active sessions for the requesting user. */
   async findMyActiveSessions(userId: string): Promise<unknown[]> {
+    // Prisma forbids using `include` and `select` together on the same level.
+    // Use `select` throughout, nesting the device sub-select inline.
     return this.prisma.userSession.findMany({
       where: { userId, isActive: true },
-      include: { device: { select: { name: true, platform: true, trusted: true } } },
       select: {
         id: true,
         platform: true,
@@ -23,7 +26,7 @@ export class SessionsService {
         lastUsedAt: true,
         createdAt: true,
         expiresAt: true,
-        device: true,
+        device: { select: { name: true, platform: true, trusted: true } },
       },
       orderBy: { lastUsedAt: "desc" },
     });
@@ -48,7 +51,7 @@ export class SessionsService {
       data: { isActive: false, revokedAt: new Date() },
     });
 
-    await this.auditService.log({
+    this.auditService.log({
       userId: requestingUser.id,
       action: "SESSION_REVOKED",
       entityType: "SESSION",

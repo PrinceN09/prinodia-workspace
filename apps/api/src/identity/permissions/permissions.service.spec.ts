@@ -1,4 +1,5 @@
-import { Test, TestingModule } from "@nestjs/testing";
+import { Test, type TestingModule } from "@nestjs/testing";
+
 import { PermissionsService } from "./permissions.service";
 import { PrismaService } from "../../prisma/prisma.service";
 
@@ -16,10 +17,7 @@ describe("PermissionsService", () => {
     jest.clearAllMocks();
 
     const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        PermissionsService,
-        { provide: PrismaService, useValue: mockPrisma },
-      ],
+      providers: [PermissionsService, { provide: PrismaService, useValue: mockPrisma }],
     }).compile();
 
     service = module.get<PermissionsService>(PermissionsService);
@@ -85,7 +83,14 @@ describe("PermissionsService", () => {
     it("should deduplicate permissions when user has multiple roles with overlapping permissions", async () => {
       mockPrisma.userRoleAssignment.findMany.mockResolvedValueOnce([
         { role: { permissions: [{ permission: { key: "AUTH:LOGIN" } }] } },
-        { role: { permissions: [{ permission: { key: "AUTH:LOGIN" } }, { permission: { key: "USER:CREATE" } }] } },
+        {
+          role: {
+            permissions: [
+              { permission: { key: "AUTH:LOGIN" } },
+              { permission: { key: "USER:CREATE" } },
+            ],
+          },
+        },
       ]);
 
       const result = await service.resolvePermissionsForUser("user-bbb");

@@ -1,16 +1,15 @@
-import {
-  ConflictException,
-  Injectable,
-  NotFoundException,
-} from "@nestjs/common";
-import * as bcrypt from "bcryptjs";
 import * as crypto from "crypto";
+
+import { ConflictException, Injectable, NotFoundException } from "@nestjs/common";
+import * as bcrypt from "bcryptjs";
+
 import { PrismaService } from "../../prisma/prisma.service";
 import { AuditService } from "../audit/audit.service";
 import { PermissionsService } from "../permissions/permissions.service";
-import type { AuthenticatedUser } from "../../common/types/auth.types";
+
 import type { CreateUserDto } from "./dto/create-user.dto";
 import type { UpdateUserStatusDto } from "./dto/update-user-status.dto";
+import type { AuthenticatedUser } from "../../common/types/auth.types";
 
 const BCRYPT_ROUNDS = 12;
 
@@ -151,9 +150,14 @@ export class UsersService {
     ipAddress: string,
   ): Promise<{ id: string; status: string; temporaryPassword: string }> {
     // Check email uniqueness
-    const existingEmail = await this.prisma.user.findUnique({ where: { email: dto.email.toLowerCase() } });
+    const existingEmail = await this.prisma.user.findUnique({
+      where: { email: dto.email.toLowerCase() },
+    });
     if (existingEmail) {
-      throw new ConflictException({ error: "EMAIL_TAKEN", message: "Email address is already registered" });
+      throw new ConflictException({
+        error: "EMAIL_TAKEN",
+        message: "Email address is already registered",
+      });
     }
 
     // Check matricule uniqueness if provided
@@ -162,7 +166,10 @@ export class UsersService {
         where: { matriculeNumber: dto.matriculeNumber },
       });
       if (existingMatricule) {
-        throw new ConflictException({ error: "MATRICULE_TAKEN", message: "Matricule number is already registered" });
+        throw new ConflictException({
+          error: "MATRICULE_TAKEN",
+          message: "Matricule number is already registered",
+        });
       }
     }
 
@@ -191,7 +198,7 @@ export class UsersService {
       select: { id: true, status: true },
     });
 
-    await this.auditService.log({
+    this.auditService.log({
       userId: createdBy.id,
       action: "USER_CREATED",
       entityType: "USER",
@@ -229,7 +236,11 @@ export class UsersService {
     if (!user) throw new NotFoundException({ error: "USER_NOT_FOUND", message: "User not found" });
 
     // Scope check
-    if (updatedBy.roleWeight < 90 && updatedBy.ministryId && user.ministryId !== updatedBy.ministryId) {
+    if (
+      updatedBy.roleWeight < 90 &&
+      updatedBy.ministryId &&
+      user.ministryId !== updatedBy.ministryId
+    ) {
       throw new NotFoundException({ error: "USER_NOT_FOUND", message: "User not found" });
     }
 
@@ -252,11 +263,13 @@ export class UsersService {
     }
 
     const action =
-      dto.status === "SUSPENDED" ? "USER_SUSPENDED" as const :
-      dto.status === "DEACTIVATED" ? "USER_DEACTIVATED" as const :
-      "USER_REACTIVATED" as const;
+      dto.status === "SUSPENDED"
+        ? ("USER_SUSPENDED" as const)
+        : dto.status === "DEACTIVATED"
+          ? ("USER_DEACTIVATED" as const)
+          : ("USER_REACTIVATED" as const);
 
-    await this.auditService.log({
+    this.auditService.log({
       userId: updatedBy.id,
       action,
       entityType: "USER",
@@ -290,7 +303,7 @@ export class UsersService {
       select: SAFE_USER_SELECT,
     });
 
-    await this.auditService.log({
+    this.auditService.log({
       userId: unlockedBy.id,
       action: "USER_UNLOCKED",
       entityType: "USER",
@@ -319,8 +332,6 @@ export class UsersService {
     const all = chars + upper + digits + special;
     const rest = Array.from({ length: 12 }, () => pick(all));
 
-    return [...required, ...rest]
-      .sort(() => crypto.randomInt(3) - 1)
-      .join("");
+    return [...required, ...rest].sort(() => crypto.randomInt(3) - 1).join("");
   }
 }
