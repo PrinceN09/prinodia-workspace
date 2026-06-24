@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "extends": "../../tsconfig.react.json",
+  "compilerOptions": {
+    // react-jsx (the automatic JSX runtime) is preferred for component
+    // libraries — no `import React` needed in every file.
+    "jsx": "react-jsx"
+  },
+  "include": ["src/**/*.ts", "src/**/*.tsx"],
+  "exclude": ["node_modules", "dist"]
+}

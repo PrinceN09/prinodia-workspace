@@ -1,0 +1,24 @@
+{
+  "app": {
+    "name": "GovSphere",
+    "tagline": "Esika ya mosala ya guvɛrnema ya makasi"
+  },
+  "auth": {
+    "login": "Kɔta",
+    "logout": "Bima",
+    "matricule": "Nomero ya Matricule",
+    "email": "Adresse email ya guvɛrnema",
+    "password": "Mot de passe",
+    "invalidCredentials": "Makambu oyo ozali kopesa ezali malamu te",
+    "sessionExpired": "Ntango ya session eleki. Kɔtaka lisusu."
+  },
+  "common": {
+    "save": "Bomba",
+    "cancel": "Kimia",
+    "delete": "Sila",
+    "search": "Luka",
+    "loading": "Kozela...",
+    "error": "Likambo moko esalemaki",
+    "success": "Elongelaki malamu"
+  }
+}

@@ -1,0 +1,208 @@
+# =============================================================================
+# GovSphere — Docker Compose (Local Development)
+# =============================================================================
+# Services:
+#   - PostgreSQL    → http://localhost:5432
+#   - Redis         → localhost:6379
+#   - MinIO         → http://localhost:9000 (API) | http://localhost:9001 (Console)
+#   - Keycloak      → http://localhost:8080
+#   - MailHog       → http://localhost:8025 (UI) | localhost:1025 (SMTP)
+#   - pgAdmin       → http://localhost:5050
+#
+# Usage:
+#   npm run docker:up      Start all services
+#   npm run docker:down    Stop all services
+#   npm run docker:reset   Wipe data volumes and restart
+#   npm run docker:logs    Follow logs
+
+name: govsphere-dev
+
+services:
+  # ---------------------------------------------------------------------------
+  # PostgreSQL — Primary database
+  # ---------------------------------------------------------------------------
+  postgres:
+    image: postgres:16-alpine
+    container_name: govsphere_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: govsphere
+      POSTGRES_PASSWORD: govsphere_dev_password
+      POSTGRES_DB: govsphere_db
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=fr_CD.UTF-8"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infra/docker/postgres/init.sql:/docker-entrypoint-initdb.d/00_init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U govsphere -d govsphere_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks:
+      - govsphere_network
+
+  # ---------------------------------------------------------------------------
+  # Redis — Cache & BullMQ job queues
+  # ---------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: govsphere_redis
+    restart: unless-stopped
+    command: redis-server --save 20 1 --loglevel warning
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - govsphere_network
+
+  # ---------------------------------------------------------------------------
+  # MinIO — S3-compatible object storage for files
+  # IMPORTANT: Files are stored here, NOT in PostgreSQL
+  # ---------------------------------------------------------------------------
+  minio:
+    image: minio/minio:RELEASE.2024-07-16T23-46-41Z
+    container_name: govsphere_minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: govsphere_minio_key
+      MINIO_ROOT_PASSWORD: govsphere_minio_secret
+    ports:
+      - "9000:9000"   # S3 API
+      - "9001:9001"   # Web console
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    networks:
+      - govsphere_network
+
+  # MinIO setup — creates default buckets on first boot
+  minio_setup:
+    image: minio/mc:RELEASE.2024-07-15T17-46-06Z
+    container_name: govsphere_minio_setup
+    depends_on:
+      minio:
+        condition: service_healthy
+    environment:
+      MINIO_ROOT_USER: govsphere_minio_key
+      MINIO_ROOT_PASSWORD: govsphere_minio_secret
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set govsphere http://minio:9000 govsphere_minio_key govsphere_minio_secret &&
+      mc mb --ignore-existing govsphere/govsphere-files &&
+      mc mb --ignore-existing govsphere/govsphere-avatars &&
+      mc mb --ignore-existing govsphere/govsphere-documents &&
+      mc anonymous set download govsphere/govsphere-avatars &&
+      echo 'MinIO buckets ready' &&
+      exit 0
+      "
+    networks:
+      - govsphere_network
+
+  # ---------------------------------------------------------------------------
+  # Keycloak — SSO & Identity Provider (for future external partner login)
+  # ---------------------------------------------------------------------------
+  keycloak:
+    image: quay.io/keycloak/keycloak:25.0
+    container_name: govsphere_keycloak
+    restart: unless-stopped
+    command: start-dev
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak_db
+      KC_DB_USERNAME: govsphere
+      KC_DB_PASSWORD: govsphere_dev_password
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_HOSTNAME: localhost
+      KC_HTTP_PORT: 8080
+      KC_HEALTH_ENABLED: "true"
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fs http://localhost:8080/health/ready || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 90s
+    networks:
+      - govsphere_network
+
+  # ---------------------------------------------------------------------------
+  # MailHog — Local SMTP server for development email testing
+  # Web UI: http://localhost:8025
+  # SMTP: localhost:1025
+  # ---------------------------------------------------------------------------
+  mailhog:
+    image: mailhog/mailhog:v1.0.1
+    container_name: govsphere_mailhog
+    restart: unless-stopped
+    ports:
+      - "1025:1025"   # SMTP
+      - "8025:8025"   # Web UI
+    networks:
+      - govsphere_network
+
+  # ---------------------------------------------------------------------------
+  # pgAdmin — PostgreSQL web administration UI
+  # http://localhost:5050
+  # Login: admin@govsphere.local / admin
+  # ---------------------------------------------------------------------------
+  pgadmin:
+    image: dpage/pgadmin4:8
+    container_name: govsphere_pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@govsphere.local
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: "False"
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+      - ./infra/docker/pgadmin/servers.json:/pgadmin4/servers.json:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - govsphere_network
+
+# =============================================================================
+# Networks
+# =============================================================================
+networks:
+  govsphere_network:
+    name: govsphere_dev_network
+    driver: bridge
+
+# =============================================================================
+# Volumes (persistent data survives container restarts)
+# =============================================================================
+volumes:
+  postgres_data:
+    name: govsphere_postgres_data
+  redis_data:
+    name: govsphere_redis_data
+  minio_data:
+    name: govsphere_minio_data
+  pgadmin_data:
+    name: govsphere_pgadmin_data

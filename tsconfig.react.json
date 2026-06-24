@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  // ─── GovSphere React / Browser TypeScript Config ─────────────────────────────
+  // Extended by: apps/web, packages/ui
+  //
+  // moduleResolution: "Bundler" is the TypeScript 5.0+ setting designed for
+  // bundled environments (webpack, turbopack, vite). It allows importing without
+  // file extensions and supports package.json "exports" maps — both are required
+  // by Next.js 15. module: "ESNext" is required by "Bundler" resolution.
+  //
+  // noEmit: true because Next.js (SWC) and Webpack handle all transpilation.
+  // TypeScript is used only for type-checking in this context.
+  // ─────────────────────────────────────────────────────────────────────────────
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "lib": ["ES2022", "dom", "dom.iterable"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "jsx": "preserve",
+    "noEmit": true,
+    // Allow importing from package.json exports without explicit extensions
+    "allowImportingTsExtensions": true,
+    // noEmit + allowImportingTsExtensions: TypeScript type-checks but does not
+    // emit .js — the bundler owns that step.
+    // Remove declaration/declarationMap since noEmit overrides them anyway
+    "declaration": false,
+    "declarationMap": false
+  }
+}

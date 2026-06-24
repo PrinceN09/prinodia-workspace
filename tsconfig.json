@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  // ─── GovSphere TypeScript Base Config ────────────────────────────────────────
+  // This file contains ONLY shared strict compiler settings.
+  // It deliberately omits `module` and `moduleResolution` because the correct
+  // values differ between targets:
+  //   • Node.js (API, shared packages) → tsconfig.node.json (NodeNext / NodeNext)
+  //   • Browser bundler (Next.js, UI)  → tsconfig.react.json (ESNext / Bundler)
+  // Every package/app extends one of those two files, NOT this one directly.
+  // ─────────────────────────────────────────────────────────────────────────────
+  "compilerOptions": {
+    "target": "ES2022",
+
+    // Strict type-safety
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "exactOptionalPropertyTypes": true,
+    "forceConsistentCasingInFileNames": true,
+
+    // Module interop
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+
+    // Output helpers — overridden per-package
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "incremental": true,
+
+    // Skip .d.ts type-checking for third-party packages
+    "skipLibCheck": true
+  },
+  "exclude": ["node_modules"]
+}

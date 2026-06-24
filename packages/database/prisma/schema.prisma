@@ -1,0 +1,663 @@
+// GovSphere — Prisma Schema v2
+// Database: PostgreSQL 17
+// ORM: Prisma 5
+//
+// Government of the Democratic Republic of Congo
+// Secure internal collaboration platform
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["fullTextSearch"]
+}
+
+datasource db {
+  provider          = "postgresql"
+  url               = env("DATABASE_URL")
+  shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
+}
+
+// =============================================================================
+// ENUMS
+// =============================================================================
+
+enum UserRole {
+  SUPER_ADMIN
+  GOVERNMENT_ADMIN
+  MINISTRY_ADMIN
+  DEPARTMENT_ADMIN
+  DIVISION_ADMIN
+  TEAM_MANAGER
+  EMPLOYEE
+  GUEST
+}
+
+enum UserType {
+  GOVERNMENT_EMPLOYEE
+  MINISTER
+  DIRECTOR
+  DEPARTMENT_ADMIN
+  IT_ADMINISTRATOR
+  EXTERNAL_PARTNER
+  GUEST
+}
+
+enum UserStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
+  LOCKED
+  DEACTIVATED
+  ARCHIVED
+}
+
+enum ChannelType {
+  PUBLIC
+  PRIVATE
+  ANNOUNCEMENT
+  DIRECT
+  GROUP
+}
+
+enum MessageType {
+  TEXT
+  FILE
+  IMAGE
+  SYSTEM
+  REPLY
+  FORWARDED
+}
+
+enum FileCategory {
+  DOCUMENT
+  IMAGE
+  VIDEO
+  AUDIO
+  ARCHIVE
+  OTHER
+}
+
+enum NotificationType {
+  MESSAGE
+  MENTION
+  REACTION
+  FILE_SHARED
+  CHANNEL_INVITE
+  TASK_ASSIGNED
+  SYSTEM
+}
+
+enum AuditAction {
+  // Authentication
+  LOGIN_SUCCESS
+  LOGIN_FAILED
+  LOGOUT
+  LOGOUT_ALL
+  TOKEN_REFRESH
+  TOKEN_INVALID
+  // MFA
+  MFA_ENABLED
+  MFA_DISABLED
+  MFA_CHALLENGE_SUCCESS
+  MFA_CHALLENGE_FAILED
+  MFA_BACKUP_CODE_USED
+  // Passwords
+  PASSWORD_CHANGED
+  PASSWORD_CHANGED_BY_ADMIN
+  PASSWORD_RESET_REQUESTED
+  PASSWORD_RESET
+  PASSWORD_EXPIRED
+  // Users
+  USER_CREATED
+  USER_UPDATED
+  USER_DEACTIVATED
+  USER_SUSPENDED
+  USER_REACTIVATED
+  USER_UNLOCKED
+  ACCOUNT_LOCKED
+  // Roles & Permissions
+  ROLE_ASSIGNED
+  ROLE_REMOVED
+  PERMISSION_CHANGED
+  // Sessions
+  SESSION_CREATED
+  SESSION_REVOKED
+  // Content (legacy compat)
+  FILE_UPLOADED
+  FILE_DOWNLOADED
+  FILE_DELETED
+  MESSAGE_SENT
+  MESSAGE_DELETED
+  CHANNEL_CREATED
+  CHANNEL_DELETED
+}
+
+enum SupportedLanguage {
+  fr
+  en
+  ln
+  sw
+  lua
+}
+
+enum MfaMethod {
+  TOTP
+  FIDO2
+  BACKUP_CODE
+}
+
+enum FileStatus {
+  PENDING
+  READY
+  REJECTED
+}
+
+// =============================================================================
+// GOVERNMENT STRUCTURE
+// =============================================================================
+
+model Ministry {
+  id               String       @id @default(cuid())
+  name             String       @db.VarChar(255)
+  nameTranslations Json         @default("{}")
+  code             String       @unique @db.VarChar(50)
+  description      String?      @db.Text
+  logoUrl          String?      @db.VarChar(500)
+  isActive         Boolean      @default(true)
+  departments      Department[]
+  users            User[]
+  channels         Channel[]
+  userRoles        UserRoleAssignment[]
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  @@index([code])
+  @@map("ministries")
+}
+
+model Department {
+  id               String     @id @default(cuid())
+  ministryId       String
+  ministry         Ministry   @relation(fields: [ministryId], references: [id])
+  name             String     @db.VarChar(255)
+  nameTranslations Json       @default("{}")
+  code             String     @db.VarChar(50)
+  description      String?    @db.Text
+  isActive         Boolean    @default(true)
+  divisions        Division[]
+  users            User[]
+  channels         Channel[]
+  userRoles        UserRoleAssignment[]
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+
+  @@unique([ministryId, code])
+  @@index([ministryId])
+  @@map("departments")
+}
+
+model Division {
+  id           String     @id @default(cuid())
+  departmentId String
+  department   Department @relation(fields: [departmentId], references: [id])
+  name         String     @db.VarChar(255)
+  code         String     @db.VarChar(50)
+  isActive     Boolean    @default(true)
+  users        User[]
+  userRoles    UserRoleAssignment[]
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@unique([departmentId, code])
+  @@index([departmentId])
+  @@map("divisions")
+}
+
+// =============================================================================
+// USERS & IDENTITY
+// =============================================================================
+
+model User {
+  id                  String            @id @default(cuid())
+  // Matricule — government-issued ID (e.g. "1.641.558", "478.432", "424.55")
+  // MUST be stored as string: dots, varying formats, leading zeros must be preserved
+  matriculeNumber     String?           @unique @db.VarChar(50)
+  email               String            @unique @db.VarChar(255)
+  passwordHash        String            @db.VarChar(255)
+  firstName           String            @db.VarChar(100)
+  lastName            String            @db.VarChar(100)
+  displayName         String            @db.VarChar(200)
+  avatarUrl           String?           @db.VarChar(500)
+  userType            UserType          @default(GOVERNMENT_EMPLOYEE)
+  // Legacy single-role field — kept for quick permission checks.
+  // Source of truth is UserRoleAssignment join table.
+  role                UserRole          @default(EMPLOYEE)
+  status              UserStatus        @default(PENDING)
+  preferredLanguage   SupportedLanguage @default(fr)
+  // MFA
+  mfaEnabled          Boolean           @default(false)
+  mfaSecret           String?           @db.VarChar(512) // AES-256-GCM encrypted
+  // Security tracking
+  failedLoginCount    Int               @default(0)
+  lockedUntil         DateTime?
+  passwordChangedAt   DateTime?
+  lastLoginAt         DateTime?
+  lastLoginIp         String?           @db.VarChar(50)
+  // Government structure
+  ministryId          String?
+  ministry            Ministry?         @relation(fields: [ministryId], references: [id])
+  departmentId        String?
+  department          Department?       @relation(fields: [departmentId], references: [id])
+  divisionId          String?
+  division            Division?         @relation(fields: [divisionId], references: [id])
+  // Identity relations
+  roleAssignments     UserRoleAssignment[]
+  sessions            UserSession[]
+  devices             UserDevice[]
+  loginHistory        LoginHistory[]
+  passwordResetTokens PasswordResetToken[]
+  passwordHistory     PasswordHistory[]
+  mfaDevices          MfaDevice[]
+  mfaBackupCodes      MfaBackupCode[]
+  // Content relations
+  sentMessages        Message[]         @relation("SentMessages")
+  channelMemberships  ChannelMember[]
+  notifications       Notification[]
+  auditLogs           AuditLog[]
+  uploadedFiles       File[]
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+  deletedAt           DateTime?
+
+  @@index([email])
+  @@index([matriculeNumber])
+  @@index([ministryId])
+  @@index([departmentId])
+  @@index([role])
+  @@index([status])
+  @@map("users")
+}
+
+// =============================================================================
+// RBAC — ROLES & PERMISSIONS
+// =============================================================================
+
+model Role {
+  id          String   @id @default(cuid())
+  name        String   @unique @db.VarChar(100)
+  displayName String   @db.VarChar(255)
+  weight      Int
+  isSystem    Boolean  @default(false)
+  description String?  @db.Text
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  permissions  RolePermission[]
+  assignments  UserRoleAssignment[]
+
+  @@index([weight])
+  @@map("roles")
+}
+
+model Permission {
+  id          String   @id @default(cuid())
+  key         String   @unique @db.VarChar(100)
+  displayName String   @db.VarChar(255)
+  description String?  @db.Text
+  resource    String   @db.VarChar(50)
+  action      String   @db.VarChar(50)
+  createdAt   DateTime @default(now())
+
+  rolePermissions RolePermission[]
+
+  @@index([resource])
+  @@map("permissions")
+}
+
+model RolePermission {
+  id           String   @id @default(cuid())
+  roleId       String
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permissionId String
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  createdAt    DateTime @default(now())
+
+  @@unique([roleId, permissionId])
+  @@index([roleId])
+  @@index([permissionId])
+  @@map("role_permissions")
+}
+
+// Scoped role assignment: a user may hold different roles in different orgs
+model UserRoleAssignment {
+  id           String    @id @default(cuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  roleId       String
+  role         Role      @relation(fields: [roleId], references: [id])
+  // Organizational scope (null = system-wide)
+  ministryId   String?
+  ministry     Ministry?   @relation(fields: [ministryId], references: [id])
+  departmentId String?
+  department   Department? @relation(fields: [departmentId], references: [id])
+  divisionId   String?
+  division     Division?   @relation(fields: [divisionId], references: [id])
+  grantedById  String
+  grantedAt    DateTime  @default(now())
+  expiresAt    DateTime?
+  isActive     Boolean   @default(true)
+
+  @@unique([userId, roleId, ministryId, departmentId, divisionId])
+  @@index([userId])
+  @@index([roleId])
+  @@index([ministryId])
+  @@map("user_role_assignments")
+}
+
+// =============================================================================
+// SESSIONS & DEVICES
+// =============================================================================
+
+model UserSession {
+  id           String    @id @default(cuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deviceId     String?
+  device       UserDevice? @relation(fields: [deviceId], references: [id])
+  // Hashed JTI of the active refresh token (for rotation validation)
+  refreshTokenJti String? @db.VarChar(255)
+  // Token family for reuse detection
+  tokenFamily  String    @db.VarChar(100)
+  ipAddress    String    @db.VarChar(50)
+  userAgent    String    @db.Text
+  platform     String    @db.VarChar(50) // "web" | "desktop" | "mobile"
+  isActive     Boolean   @default(true)
+  lastUsedAt   DateTime  @default(now())
+  revokedAt    DateTime?
+  expiresAt    DateTime
+  createdAt    DateTime  @default(now())
+
+  @@index([userId])
+  @@index([refreshTokenJti])
+  @@index([tokenFamily])
+  @@index([isActive])
+  @@map("user_sessions")
+}
+
+model UserDevice {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String    @db.VarChar(255)
+  platform    String    @db.VarChar(50)
+  fingerprint String    @db.VarChar(255)
+  trusted     Boolean   @default(false)
+  lastSeenAt  DateTime  @default(now())
+  createdAt   DateTime  @default(now())
+
+  sessions    UserSession[]
+
+  @@unique([userId, fingerprint])
+  @@index([userId])
+  @@map("user_devices")
+}
+
+// =============================================================================
+// LOGIN HISTORY
+// =============================================================================
+
+model LoginHistory {
+  id         String   @id @default(cuid())
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id])
+  credential String   @db.VarChar(255) // matricule or email used (for auditing)
+  success    Boolean
+  failReason String?  @db.VarChar(100)
+  ipAddress  String   @db.VarChar(50)
+  userAgent  String   @db.Text
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
+  @@index([ipAddress])
+  @@index([createdAt])
+  @@map("login_history")
+}
+
+// =============================================================================
+// PASSWORD MANAGEMENT
+// =============================================================================
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // SHA-256 hash of the raw token (raw token is in the email link only)
+  tokenHash String   @unique @db.VarChar(255)
+  used      Boolean  @default(false)
+  usedAt    DateTime?
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@map("password_reset_tokens")
+}
+
+model PasswordHistory {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  passwordHash String   @db.VarChar(255)
+  createdAt    DateTime @default(now())
+
+  @@index([userId])
+  @@map("password_history")
+}
+
+// =============================================================================
+// MFA
+// =============================================================================
+
+model MfaDevice {
+  id           String    @id @default(cuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name         String    @db.VarChar(255)
+  method       MfaMethod @default(TOTP)
+  // FIDO2 / WebAuthn fields (future)
+  credentialId String?   @db.VarChar(512)
+  publicKey    String?   @db.Text
+  counter      Int?
+  isActive     Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  lastUsedAt   DateTime?
+
+  @@index([userId])
+  @@map("mfa_devices")
+}
+
+model MfaBackupCode {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  codeHash  String   @db.VarChar(255) // bcrypt hash
+  isUsed    Boolean  @default(false)
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@map("mfa_backup_codes")
+}
+
+// =============================================================================
+// CHANNELS & MESSAGING
+// =============================================================================
+
+model Channel {
+  id             String          @id @default(cuid())
+  name           String          @db.VarChar(100)
+  description    String?         @db.Text
+  type           ChannelType     @default(PUBLIC)
+  ministryId     String?
+  ministry       Ministry?       @relation(fields: [ministryId], references: [id])
+  departmentId   String?
+  department     Department?     @relation(fields: [departmentId], references: [id])
+  isArchived     Boolean         @default(false)
+  createdById    String
+  members        ChannelMember[]
+  messages       Message[]
+  pinnedMessages PinnedMessage[]
+  files          File[]
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  @@index([ministryId])
+  @@index([departmentId])
+  @@index([type])
+  @@map("channels")
+}
+
+model ChannelMember {
+  id         String   @id @default(cuid())
+  channelId  String
+  channel    Channel  @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  isAdmin    Boolean  @default(false)
+  joinedAt   DateTime @default(now())
+  lastReadAt DateTime @default(now())
+
+  @@unique([channelId, userId])
+  @@index([channelId])
+  @@index([userId])
+  @@map("channel_members")
+}
+
+model Message {
+  id            String        @id @default(cuid())
+  channelId     String
+  channel       Channel       @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  senderId      String
+  sender        User          @relation("SentMessages", fields: [senderId], references: [id])
+  type          MessageType   @default(TEXT)
+  content       String        @db.Text
+  replyToId     String?
+  replyTo       Message?      @relation("Replies", fields: [replyToId], references: [id])
+  replies       Message[]     @relation("Replies")
+  isPinned      Boolean       @default(false)
+  pinnedMessage PinnedMessage?
+  reactions     Reaction[]
+  attachments   File[]        @relation("MessageFiles")
+  editedAt      DateTime?
+  deletedAt     DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@index([channelId])
+  @@index([senderId])
+  @@index([createdAt])
+  @@map("messages")
+}
+
+model Reaction {
+  id        String   @id @default(cuid())
+  messageId String
+  message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  userId    String
+  emoji     String   @db.VarChar(20)
+  createdAt DateTime @default(now())
+
+  @@unique([messageId, userId, emoji])
+  @@index([messageId])
+  @@map("reactions")
+}
+
+model PinnedMessage {
+  id        String   @id @default(cuid())
+  messageId String   @unique
+  message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  channelId String
+  channel   Channel  @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  pinnedById String
+  pinnedAt  DateTime @default(now())
+
+  @@index([channelId])
+  @@map("pinned_messages")
+}
+
+// =============================================================================
+// FILE STORAGE
+// NOTE: Actual files are stored in MinIO/S3. Only metadata lives here.
+// =============================================================================
+
+model File {
+  id           String      @id @default(cuid())
+  name         String      @db.VarChar(255)
+  originalName String      @db.VarChar(255)
+  mimeType     String      @db.VarChar(127)
+  size         BigInt
+  category     FileCategory @default(OTHER)
+  status       FileStatus  @default(PENDING)
+  storageKey   String      @db.VarChar(500)
+  bucketName   String      @db.VarChar(100)
+  checksum     String?     @db.VarChar(64)
+  uploadedById String
+  uploadedBy   User        @relation(fields: [uploadedById], references: [id])
+  channelId    String?
+  channel      Channel?    @relation(fields: [channelId], references: [id])
+  messageId    String?
+  message      Message?    @relation("MessageFiles", fields: [messageId], references: [id])
+  isPublic     Boolean     @default(false)
+  deletedAt    DateTime?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  @@index([uploadedById])
+  @@index([channelId])
+  @@index([messageId])
+  @@index([storageKey])
+  @@map("files")
+}
+
+// =============================================================================
+// NOTIFICATIONS
+// =============================================================================
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      NotificationType
+  title     String           @db.VarChar(255)
+  body      String           @db.Text
+  data      Json             @default("{}")
+  isRead    Boolean          @default(false)
+  readAt    DateTime?
+  createdAt DateTime         @default(now())
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
+// =============================================================================
+// AUDIT LOGS — IMMUTABLE (app user has INSERT + SELECT only, never UPDATE/DELETE)
+// =============================================================================
+
+model AuditLog {
+  id         String      @id @default(cuid())
+  userId     String?
+  user       User?       @relation(fields: [userId], references: [id])
+  action     AuditAction
+  entityType String?     @db.VarChar(100)
+  entityId   String?     @db.VarChar(100)
+  metadata   Json        @default("{}")
+  ipAddress  String?     @db.VarChar(50)
+  userAgent  String?     @db.Text
+  createdAt  DateTime    @default(now())
+
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+  @@index([entityType, entityId])
+  @@map("audit_logs")
+}

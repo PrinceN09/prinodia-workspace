@@ -1,0 +1,24 @@
+{
+  "app": {
+    "name": "GovSphere",
+    "tagline": "Esika ya mibangidilu ya gavumande ya tshiena"
+  },
+  "auth": {
+    "login": "Ingila",
+    "logout": "Buka",
+    "matricule": "Nomba wa Matricule",
+    "email": "Adresse email wa gavumande",
+    "password": "Mot de passe",
+    "invalidCredentials": "Bintu bya kulongolola ke bya tshimpunga",
+    "sessionExpired": "Session yashila. Ingila nansha."
+  },
+  "common": {
+    "save": "Bika",
+    "cancel": "Lekelela",
+    "delete": "Futa",
+    "search": "Bena",
+    "loading": "Dilonda...",
+    "error": "Tshiakayi tshimue tshienzeke",
+    "success": "Tshimue tshienzekele"
+  }
+}

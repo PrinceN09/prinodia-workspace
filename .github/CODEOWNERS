@@ -1,0 +1,37 @@
+# GovSphere — Code Owners
+# ─────────────────────────────────────────────────────────────────────────────
+# Each line is a file pattern followed by one or more owners.
+# Owners are automatically requested for review when a PR touches
+# files matching the pattern.
+#
+# See: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default owner — required review for everything
+* @govsphere-engineering
+
+# ── Security-sensitive paths ──────────────────────────────────────────────────
+# Any change to auth, RBAC, MFA, session management, or security config
+# requires the security team lead in addition to the engineering team.
+apps/api/src/identity/          @govsphere-engineering @govsphere-security
+apps/api/src/common/guards/     @govsphere-engineering @govsphere-security
+apps/api/src/config/            @govsphere-engineering @govsphere-security
+docs/07_Security_Architecture.md @govsphere-engineering @govsphere-security
+SECURITY.md                     @govsphere-engineering @govsphere-security
+
+# ── Database schema ───────────────────────────────────────────────────────────
+# Schema changes require engineering review — migrations are irreversible in prod.
+packages/database/prisma/       @govsphere-engineering @govsphere-dba
+
+# ── Infrastructure ────────────────────────────────────────────────────────────
+infra/                          @govsphere-engineering @govsphere-devops
+docker/                         @govsphere-engineering @govsphere-devops
+.github/workflows/              @govsphere-engineering @govsphere-devops
+
+# ── Documentation ─────────────────────────────────────────────────────────────
+docs/                           @govsphere-engineering
+
+# ── Root config (breaking changes) ────────────────────────────────────────────
+package.json                    @govsphere-engineering
+turbo.json                      @govsphere-engineering
+tsconfig.json                   @govsphere-engineering
+.eslintrc.js                    @govsphere-engineering

@@ -1,0 +1,155 @@
+# Changelog
+
+All notable changes to GovSphere are documented in this file.
+
+Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
+Versioning follows [Semantic Versioning](https://semver.org/).
+
+---
+
+## [0.1.0-foundation] — 2026-06-23
+
+**Foundation release.** This release establishes the complete engineering foundation for GovSphere: monorepo structure, database schema, Identity Platform, CI pipeline, security hardening, documentation, and architectural decisions. No business features beyond authentication and identity are included.
+
+### Added
+
+**Repository & Monorepo**
+- Turborepo monorepo with `apps/`, `packages/`, `infra/`, `docs/`, `docker/`, `scripts/`, `.github/` structure
+- Shared TypeScript configuration hierarchy (`tsconfig.json`, `tsconfig.node.json`, `tsconfig.react.json`)
+- Root ESLint configuration with `@typescript-eslint/recommended-type-checked`, import ordering, and Prettier
+- Root Prettier configuration
+- `.gitignore` covering Node, Turborepo, Next.js, Prisma, and OS artifacts
+- `.npmrc` for workspace-aware npm behavior
+- Husky + lint-staged for pre-commit hooks
+- `package.json` scripts: `dev`, `build`, `test`, `lint`, `type-check`, `format`, `db:*`, `docker:*`
+
+**Applications**
+- `apps/api/` — NestJS 10 API scaffold with full TypeScript strict mode
+- `apps/web/` — Next.js 15 App Router scaffold with Tailwind CSS
+- `apps/desktop/` — Tauri 2 desktop app scaffold (Phase 10 implementation)
+- `apps/mobile/` — React Native 0.74 mobile app scaffold (Phase 10 implementation)
+
+**Packages**
+- `packages/database/` — Prisma 5 schema, migrations, seed script
+- `packages/ui/` — Shared Radix UI + Tailwind component library scaffold
+- `packages/types/` — Shared TypeScript type definitions
+- `packages/config/` — Environment schemas and shared constants
+- `packages/auth/` — Authentication helpers and RBAC utilities
+- `packages/i18n/` — Translation files for fr, en, ln, sw, lua
+- `packages/utils/` — Shared utility functions
+
+**Database Schema (Prisma)**
+- `User` model with `UserStatus`, `UserType`, `UserRole` (enum), `failedLoginCount`, `lockedUntil`, `passwordChangedAt`
+- `Ministry`, `Department`, `Division`, `Team` organizational hierarchy models
+- `Role`, `Permission`, `RolePermission` — RBAC entity models
+- `UserRoleAssignment` — scoped join table (supports ministry/department/division scope and expiry)
+- `UserSession` — JWT session tracking with token family rotation
+- `UserDevice` — device fingerprinting and trusted device registry
+- `LoginHistory` — per-login audit trail
+- `PasswordResetToken` — secure password reset flow
+- `PasswordHistory` — last 10 hashes enforced
+- `MfaDevice` — FIDO2/TOTP device registration
+- `MfaBackupCode` — bcrypt-hashed backup codes
+- `AuditLog` — immutable audit log with 30+ `AuditAction` enum values
+- `File` model with `FileStatus` enum (metadata only — no binary content)
+- `Channel`, `Message`, `Reaction`, `MessageRead` — placeholder models for Sprint 2
+- Seed script: 30 permissions across AUTH/USER/CHANNEL/FILE/ADMIN resources; 8 system roles
+
+**Identity Platform (Sprint 1)**
+- `AuthService` — Matricule + email login, bcrypt cost 12, account lockout (5 soft / 10 hard), password reset with SHA-256 token hash, token pair issuance
+- `JwtStrategy` — RS256 verification with per-request user validation
+- `AuthController` — `POST /v1/auth/login`, `POST /v1/auth/refresh`, `POST /v1/auth/logout`, `POST /v1/auth/logout-all`, `POST /v1/auth/forgot-password`, `POST /v1/auth/reset-password`, `GET /v1/auth/me`
+- Refresh token as `HttpOnly SameSite=Strict Secure` cookie at path `/v1/auth/refresh`
+- Token family rotation with reuse detection → revoke all family sessions
+- `UsersService` — user CRUD, status management, scoped listing (Ministry Admin sees only their ministry)
+- `RolesService` — weight-based role assignment with organizational scope enforcement
+- `PermissionsService` — in-process cache (1-min TTL), falls back to `User.role` enum
+- `SessionsService` — session listing, revocation, idle cleanup
+- `MfaService` — TOTP setup, confirmation, verification; AES-256-GCM TOTP secret encryption; 8 backup codes
+- `AuditService` — fire-and-forget immutable audit writes
+- Global guards: `JwtAuthGuard`, `PermissionsGuard`, `ThrottlerGuard`
+- Decorators: `@Public()`, `@CurrentUser()`, `@RequirePermissions()`
+- `GlobalExceptionFilter` — structured JSON error response with `requestId`
+
+**Infrastructure (Sprint 1 Foundation Hardening)**
+- Zod environment validation (`env.validation.ts`) — app fails to start on missing/invalid vars
+- Typed config modules: `application.config.ts`, `database.config.ts`, `jwt.config.ts`, `mail.config.ts`, `redis.config.ts`, `storage.config.ts`
+- Pino structured logging (`AppLogger`) — JSON output, Loki-compatible, request ID correlation
+- `LoggingModule` — global Pino logger
+- `RequestIdMiddleware` — UUID per request, forwarded as `X-Request-ID` header
+- `HealthModule` with `GET /health`, `GET /health/live`, `GET /health/ready`, `GET /health/db` via `@nestjs/terminus`
+- `CacheModule` — NestJS cache-manager (in-memory v0.1, Redis-ready)
+- `QueueModule` — BullMQ scaffold (activated Sprint 2)
+- `StorageModule` — MinIO scaffold (activated Sprint 3)
+- `EventsModule` — domain event system scaffold (activated Sprint 2)
+- Docker Compose for local dev: PostgreSQL 17, Redis 7, MinIO, MailHog, pgAdmin
+
+**GitHub & DevOps**
+- GitHub Actions CI workflow: lint, type-check, unit tests (with PostgreSQL + Redis services), build, npm audit
+- Dependabot configuration (weekly npm + GitHub Actions updates)
+- Issue templates: bug report, feature request
+- PR template with security checklist, database change checklist, i18n checklist
+- `CODEOWNERS` — security team required for auth/RBAC/MFA changes
+- `SECURITY.md` — responsible disclosure policy
+- `CONTRIBUTING.md` — branching strategy, Conventional Commits, testing requirements
+- `CODE_OF_CONDUCT.md`
+
+**Documentation**
+- `docs/01_Product_Vision.md` — Mission, goals, stakeholders
+- `docs/02_Product_Requirements.md` — Functional and non-functional requirements
+- `docs/03_System_Architecture.md` — High-level system design
+- `docs/04_Database_Architecture.md` — Schema design, entity relationships
+- `docs/05_API_Architecture.md` — REST API design, versioning, conventions
+- `docs/06_UI_Design_System.md` — Component library, design tokens
+- `docs/07_Security_Architecture.md` — Auth, RBAC, encryption, audit, threat model
+- `docs/08_Engineering_Standards.md` — Code conventions, PR process, DoD
+- `docs/09_DevOps_Architecture.md` — CI/CD, Docker, Terraform, observability
+- `docs/10_Roadmap.md` — Sprint plan, milestones, version targets
+- `docs/11_Identity_Platform_Architecture.md` — Identity service design document
+- `docs/INDEX.md` — Documentation index
+- `docs/adr/ADR-001` through `docs/adr/ADR-010` — Architecture Decision Records
+- `README.md` — Enterprise-grade project README
+- `CHANGELOG.md` (this file)
+
+**Tests**
+- `auth.service.spec.ts` — 18 unit tests (credential detection, login flows, lockout, password reset, logout)
+- `permissions.service.spec.ts` — 6 unit tests (role resolution, cache, fallback)
+- `roles.service.spec.ts` — 9 unit tests (weight checks, scope enforcement, audit logging)
+- Jest configuration with ts-jest, coverage thresholds (80% branches, 85% functions/lines)
+
+### Security
+
+- Real password (`Ntunka2@16`) removed from `.env.example` — replaced with `CHANGE_ME_*` placeholders
+- JWT configuration updated from symmetric (HS256) to asymmetric RS256 in `.env.example` and documentation
+- `MFA_ENCRYPTION_KEY` validation enforces 64-hex-char format
+- `CHANGE_ME_*` placeholder detection in Zod validation prevents production deployment with default values
+- `X-Request-ID` header exposed for log correlation across client/server
+
+### Changed
+
+- `AppModule` wired with `RequestIdMiddleware`, `LoggingModule`, `HealthModule`, `CacheModule`, `QueueModule`, `StorageModule`, `EventsModule`
+- `GlobalExceptionFilter` updated to include `requestId` field in all error responses
+- `main.ts` updated to use Pino logger as NestJS logger; Swagger enhanced with tag organization and cookie auth
+- `.env.example` restructured with clearer sections, RS256 key documentation, and generation instructions
+
+### Infrastructure
+
+- `docker/` directory created for future per-app Dockerfiles
+- `scripts/` directory created for developer automation scripts
+- `.github/` directory created with full CI/CD and community files
+
+---
+
+## Unreleased
+
+### Planned for v0.2.0 (Sprint 2 — Channels & Messaging)
+
+- Channel create, list, join, archive, member management
+- Message send, edit, delete (soft), paginate (cursor-based), reactions, threads, pin/unpin
+- Socket.IO gateway with Redis adapter
+- Rooms: `channel:{id}`, `dm:{userId1}:{userId2}`, `presence:{userId}`
+- Unit tests for ChannelsService and MessagesService
+
+---
+
+*For the complete roadmap, see [docs/10_Roadmap.md](./docs/10_Roadmap.md).*

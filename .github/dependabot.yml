@@ -1,0 +1,53 @@
+version: 2
+
+updates:
+  # ── npm (monorepo root + all workspaces) ──────────────────────────────────
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Africa/Kinshasa"
+    open-pull-requests-limit: 10
+    groups:
+      # Group NestJS ecosystem updates together
+      nestjs:
+        patterns:
+          - "@nestjs/*"
+      # Group Prisma updates together
+      prisma:
+        patterns:
+          - "prisma"
+          - "@prisma/*"
+      # Group TypeScript tooling updates
+      typescript-tooling:
+        patterns:
+          - "typescript"
+          - "@typescript-eslint/*"
+          - "ts-jest"
+          - "ts-node"
+      # Group testing dependencies
+      testing:
+        patterns:
+          - "jest"
+          - "@types/jest"
+          - "@nestjs/testing"
+    labels:
+      - "dependencies"
+      - "automated"
+    reviewers:
+      - "govsphere-engineering"
+
+  # ── GitHub Actions ─────────────────────────────────────────────────────────
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Africa/Kinshasa"
+    labels:
+      - "dependencies"
+      - "github-actions"
+      - "automated"

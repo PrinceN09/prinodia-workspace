@@ -1,0 +1,14 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "GovSphere Dev",
+      "Group": "GovSphere",
+      "Host": "postgres",
+      "Port": 5432,
+      "MaintenanceDB": "govsphere_db",
+      "Username": "govsphere",
+      "SSLMode": "prefer",
+      "PassFile": "/pgadmin4/pgpass"
+    }
+  }
+}

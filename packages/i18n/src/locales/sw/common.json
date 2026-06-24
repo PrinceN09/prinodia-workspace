@@ -1,0 +1,24 @@
+{
+  "app": {
+    "name": "GovSphere",
+    "tagline": "Jukwaa la ushirikiano la serikali salama"
+  },
+  "auth": {
+    "login": "Ingia",
+    "logout": "Toka",
+    "matricule": "Nambari ya Matricule",
+    "email": "Barua pepe ya serikali",
+    "password": "Nenosiri",
+    "invalidCredentials": "Taarifa za kuingia si sahihi",
+    "sessionExpired": "Kikao kimekwisha. Tafadhali ingia tena."
+  },
+  "common": {
+    "save": "Hifadhi",
+    "cancel": "Ghairi",
+    "delete": "Futa",
+    "search": "Tafuta",
+    "loading": "Inapakia...",
+    "error": "Hitilafu imetokea",
+    "success": "Imefanikiwa"
+  }
+}

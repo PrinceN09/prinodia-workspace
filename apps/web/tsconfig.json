@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "extends": "../../tsconfig.react.json",
+  "compilerOptions": {
+    // Next.js TypeScript plugin for enhanced IDE support
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    // Path aliases — keep workspace packages pointing at TypeScript source
+    // so the bundler picks up changes without a build step.
+    "paths": {
+      "@/*": [
+        "./src/*"
+      ],
+      "@govsphere/ui": [
+        "../../packages/ui/src/index.ts"
+      ],
+      "@govsphere/types": [
+        "../../packages/types/src/index.ts"
+      ],
+      "@govsphere/i18n": [
+        "../../packages/i18n/src/index.ts"
+      ],
+      "@govsphere/config": [
+        "../../packages/config/src/index.ts"
+      ],
+      "@govsphere/auth": [
+        "../../packages/auth/src/index.ts"
+      ],
+      "@govsphere/utils": [
+        "../../packages/utils/src/index.ts"
+      ]
+    },
+    "allowJs": true,
+    "isolatedModules": true
+  },
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}

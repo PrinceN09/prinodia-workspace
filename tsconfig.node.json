@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  // ─── GovSphere Node.js / Backend TypeScript Config ───────────────────────────
+  // Extended by: apps/api, packages/database, packages/types, packages/config,
+  //              packages/auth, packages/utils, packages/i18n
+  //
+  // NodeNext module resolution is the TypeScript-recommended setting for modern
+  // Node.js. Because none of these packages have "type": "module" in their
+  // package.json, TypeScript treats .ts files as CommonJS TypeScript (.cts),
+  // which is what NestJS requires. No .js extension friction for workspace
+  // imports since those resolve through path aliases, not relative files.
+  // ─────────────────────────────────────────────────────────────────────────────
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "lib": ["ES2022"],
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext"
+  }
+}
