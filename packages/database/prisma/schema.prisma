@@ -1,4 +1,4 @@
-// GovSphere — Prisma Schema v2
+// GovSphere — Prisma Schema v3
 // Database: PostgreSQL 17
 // ORM: Prisma 5
 //
@@ -129,6 +129,25 @@ enum AuditAction {
   MESSAGE_DELETED
   CHANNEL_CREATED
   CHANNEL_DELETED
+  // Government Structure
+  MINISTRY_CREATED
+  MINISTRY_UPDATED
+  MINISTRY_DEACTIVATED
+  DEPARTMENT_CREATED
+  DEPARTMENT_UPDATED
+  DEPARTMENT_DEACTIVATED
+  DIVISION_CREATED
+  DIVISION_UPDATED
+  DIVISION_DEACTIVATED
+  PROVINCE_CREATED
+  PROVINCE_UPDATED
+  OFFICE_CREATED
+  OFFICE_UPDATED
+  POSITION_CREATED
+  POSITION_UPDATED
+  POSITION_DEACTIVATED
+  EMPLOYEE_ASSIGNED
+  EMPLOYEE_ASSIGNMENT_ENDED
 }
 
 enum SupportedLanguage {
@@ -164,6 +183,8 @@ model Ministry {
   logoUrl          String?      @db.VarChar(500)
   isActive         Boolean      @default(true)
   departments      Department[]
+  positions        Position[]
+  offices          Office[]
   users            User[]
   channels         Channel[]
   userRoles        UserRoleAssignment[]
@@ -184,6 +205,7 @@ model Department {
   description      String?    @db.Text
   isActive         Boolean    @default(true)
   divisions        Division[]
+  positions        Position[]
   users            User[]
   channels         Channel[]
   userRoles        UserRoleAssignment[]
@@ -196,20 +218,116 @@ model Department {
 }
 
 model Division {
-  id           String     @id @default(cuid())
-  departmentId String
-  department   Department @relation(fields: [departmentId], references: [id])
-  name         String     @db.VarChar(255)
-  code         String     @db.VarChar(50)
-  isActive     Boolean    @default(true)
-  users        User[]
-  userRoles    UserRoleAssignment[]
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
+  id               String     @id @default(cuid())
+  departmentId     String
+  department       Department @relation(fields: [departmentId], references: [id])
+  name             String     @db.VarChar(255)
+  nameTranslations Json       @default("{}")
+  code             String     @db.VarChar(50)
+  description      String?    @db.Text
+  isActive         Boolean    @default(true)
+  users            User[]
+  userRoles        UserRoleAssignment[]
+  positions        Position[]
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
 
   @@unique([departmentId, code])
   @@index([departmentId])
   @@map("divisions")
+}
+
+model Province {
+  id               String    @id @default(cuid())
+  name             String    @db.VarChar(255)
+  nameTranslations Json      @default("{}")
+  code             String    @unique @db.VarChar(10)
+  capital          String?   @db.VarChar(255)
+  isActive         Boolean   @default(true)
+  offices          Office[]
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([code])
+  @@map("provinces")
+}
+
+model Office {
+  id          String     @id @default(cuid())
+  provinceId  String
+  province    Province   @relation(fields: [provinceId], references: [id])
+  ministryId  String?
+  ministry    Ministry?  @relation(fields: [ministryId], references: [id])
+  name        String     @db.VarChar(255)
+  code        String     @db.VarChar(50)
+  address     String?    @db.Text
+  isActive    Boolean    @default(true)
+  positions   Position[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@unique([provinceId, code])
+  @@index([provinceId])
+  @@index([ministryId])
+  @@map("offices")
+}
+
+enum PositionLevel {
+  EXECUTIVE       // Minister, Secretary-General
+  DIRECTOR        // Director-General, Director
+  MANAGER         // Division Chief, Section Chief
+  SPECIALIST      // Senior officer, Specialist
+  OFFICER         // Standard civil servant
+  SUPPORT         // Administrative support
+}
+
+model Position {
+  id               String        @id @default(cuid())
+  title            String        @db.VarChar(255)
+  titleTranslations Json         @default("{}")
+  code             String        @db.VarChar(50)
+  level            PositionLevel @default(OFFICER)
+  headcount        Int           @default(1)
+  ministryId       String?
+  ministry         Ministry?     @relation(fields: [ministryId], references: [id])
+  departmentId     String?
+  department       Department?   @relation(fields: [departmentId], references: [id])
+  divisionId       String?
+  division         Division?     @relation(fields: [divisionId], references: [id])
+  officeId         String?
+  office           Office?       @relation(fields: [officeId], references: [id])
+  isActive         Boolean       @default(true)
+  assignments      EmployeeAssignment[]
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  @@unique([ministryId, code])
+  @@index([ministryId])
+  @@index([departmentId])
+  @@index([divisionId])
+  @@index([level])
+  @@map("positions")
+}
+
+model EmployeeAssignment {
+  id           String    @id @default(cuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  positionId   String
+  position     Position  @relation(fields: [positionId], references: [id])
+  startDate    DateTime
+  endDate      DateTime?
+  isPrimary    Boolean   @default(true)
+  isActive     Boolean   @default(true)
+  notes        String?   @db.Text
+  assignedById String
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([positionId])
+  @@index([isActive])
+  @@map("employee_assignments")
 }
 
 // =============================================================================
@@ -258,6 +376,8 @@ model User {
   passwordHistory     PasswordHistory[]
   mfaDevices          MfaDevice[]
   mfaBackupCodes      MfaBackupCode[]
+  // Government structure
+  employeeAssignments EmployeeAssignment[]
   // Content relations
   sentMessages        Message[]         @relation("SentMessages")
   channelMemberships  ChannelMember[]

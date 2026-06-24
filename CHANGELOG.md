@@ -140,9 +140,75 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [0.3.0] — 2026-06-24
+
+**Government Structure release.** Implements the complete DRC government organizational hierarchy as Prisma models, REST APIs, and seed data.
+
+### Added
+
+**Database Schema (Prisma v3)**
+- `Province` model — 26 DRC provinces with multilingual name translations and capital city
+- `Office` model — Provincial government offices, linked to both Province and Ministry
+- `PositionLevel` enum — `EXECUTIVE`, `DIRECTOR`, `MANAGER`, `SPECIALIST`, `OFFICER`, `SUPPORT`
+- `Position` model — Civil service positions scoped to Ministry/Department/Division/Office with headcount
+- `EmployeeAssignment` model — Employee-to-position assignments with start/end dates, primary flag, and audit trail
+- Extended `Division` with `nameTranslations` (JSON) and `description` fields
+- Extended `Ministry` and `Department` with `positions` and `offices` relations
+- Extended `User` with `employeeAssignments` relation
+- 19 new `AuditAction` enum values: `MINISTRY_CREATED/UPDATED/DEACTIVATED`, `DEPARTMENT_*`, `DIVISION_*`, `PROVINCE_*`, `OFFICE_*`, `POSITION_*`, `EMPLOYEE_ASSIGNED/ASSIGNMENT_ENDED`
+- Migration `20260624172831_add_government_structure`
+
+**NestJS Modules (Government Structure)**
+- `GovernmentModule` — aggregator module wiring all 6 sub-modules
+- `MinistriesModule` — `GET/POST /v1/ministries`, `GET/PATCH/DELETE /v1/ministries/:id`, `GET /v1/ministries/code/:code`
+- `DepartmentsModule` — `GET/POST /v1/departments`, `GET/PATCH/DELETE /v1/departments/:id`
+- `DivisionsModule` — `GET/POST /v1/divisions`, `GET/PATCH/DELETE /v1/divisions/:id`
+- `ProvincesModule` — `GET/POST /v1/provinces`, `GET/PATCH /v1/provinces/:id`
+- `PositionsModule` — `GET/POST /v1/positions`, `GET/PATCH /v1/positions/:id`
+- `AssignmentsModule` — `POST /v1/assignments`, `GET /v1/assignments/:id`, `PATCH /v1/assignments/:id/end`, `GET /v1/users/:userId/assignments`
+- All DTOs with `class-validator` decorators, pagination, and filtered list queries
+- Full audit logging on all write operations (create/update/deactivate/assign/end)
+- Parent-existence validation (ministry before department, department before division)
+- Unique code constraint enforcement with descriptive `ConflictException`
+
+**Permissions (21 new)**
+- `MINISTRY:READ/CREATE/UPDATE/DEACTIVATE`
+- `DEPARTMENT:READ/CREATE/UPDATE/DEACTIVATE`
+- `DIVISION:READ/CREATE/UPDATE/DEACTIVATE`
+- `PROVINCE:READ/CREATE/UPDATE`
+- `POSITION:READ/CREATE/UPDATE`
+- `EMPLOYEE_ASSIGNMENT:READ/CREATE/UPDATE`
+- Integrated into all 8 system roles (SUPER_ADMIN gets all; lower roles get appropriate read/write subsets)
+
+**Seed Data**
+- 26 DRC provinces with ISO-style codes, French names, and capital cities
+- 36 DRC ministries with French names, English translations, and descriptions
+
+### Changed
+
+- `AppModule` — imports `GovernmentModule`
+- `packages/database/prisma/seed.ts` — extended with provinces and ministries seed (idempotent `upsert`)
+
+---
+
+## [0.2.0] — 2026-06-24
+
+**Identity Platform release.** Completes the authentication, RBAC, MFA, audit, and session management platform.
+
+### Added
+
+- Identity Platform: Auth, Users, Roles, Permissions, MFA, Sessions, Audit modules
+- RBAC: weight-based role assignment, scoped role assignments (ministry/department/division)
+- MFA: TOTP + FIDO2 architecture, AES-256-GCM TOTP secret encryption, 8 backup codes
+- Audit: immutable audit log, 33 `AuditAction` enum values
+- Sessions: JWT session tracking, token family rotation, reuse detection
+- Tests: 33 unit tests across Auth, Permissions, Roles services
+
+---
+
 ## Unreleased
 
-### Planned for v0.2.0 (Sprint 2 — Channels & Messaging)
+### Planned for v0.4.0 (Channels & Messaging)
 
 - Channel create, list, join, archive, member management
 - Message send, edit, delete (soft), paginate (cursor-based), reactions, threads, pin/unpin

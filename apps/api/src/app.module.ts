@@ -17,6 +17,7 @@ import {
   storageConfig,
   validateEnv,
 } from "./config";
+import { GovernmentModule } from "./government/government.module";
 import { HealthModule } from "./health/health.module";
 import { IdentityModule } from "./identity/identity.module";
 import { CacheModule } from "./infrastructure/cache/cache.module";
@@ -62,6 +63,7 @@ import { PrismaModule } from "./prisma/prisma.module";
 
     // ── Features ─────────────────────────────────────────────────────────────
     IdentityModule, // Auth, Users, Roles, Permissions, MFA, Sessions, Audit
+    GovernmentModule, // Ministries, Departments, Divisions, Provinces, Positions, Assignments
 
     // ── Health ───────────────────────────────────────────────────────────────
     HealthModule, // GET /health, /health/live, /health/ready, /health/db

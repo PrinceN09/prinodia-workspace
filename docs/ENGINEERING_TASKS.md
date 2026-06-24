@@ -19,12 +19,33 @@
 - [ ] MFA scaffolding (TOTP-ready)
 - [ ] Audit log: LOGIN, LOGOUT, LOGIN_FAILED
 
-## Phase 3 — User & Government Structure
-- [ ] Ministry CRUD (API + UI)
-- [ ] Department CRUD
-- [ ] Division CRUD
-- [ ] User management (create, activate, deactivate)
-- [ ] Role assignment
+## Phase 2 — Identity Platform (v0.2.0) ✅ COMPLETE
+- [x] NestJS Auth module (JWT RS256 strategy, matricule + email login)
+- [x] Password hashing (bcrypt cost 12), account lockout (5 soft / 10 hard)
+- [x] Refresh token rotation with family-based reuse detection
+- [x] RBAC: Role, Permission, RolePermission, UserRoleAssignment (scoped)
+- [x] MFA: TOTP setup/verify, FIDO2 architecture, AES-256-GCM secret encryption, 8 backup codes
+- [x] Sessions: listing, revocation, idle cleanup
+- [x] Audit: fire-and-forget immutable writes, 33 AuditAction values
+- [x] 33 unit tests (Auth, Permissions, Roles)
+
+## Phase 3 — Government Structure (v0.3.0) ✅ COMPLETE
+- [x] Prisma: Province, Office, Position, EmployeeAssignment models
+- [x] Migration: `20260624172831_add_government_structure`
+- [x] MinistriesModule: CRUD API at `/v1/ministries`
+- [x] DepartmentsModule: CRUD API at `/v1/departments`
+- [x] DivisionsModule: CRUD API at `/v1/divisions`
+- [x] ProvincesModule: CRUD API at `/v1/provinces`
+- [x] PositionsModule: CRUD API at `/v1/positions`
+- [x] AssignmentsModule: Employee assignment API at `/v1/assignments`
+- [x] GovernmentModule: aggregator wired into AppModule
+- [x] 21 new permissions seeded (MINISTRY/DEPARTMENT/DIVISION/PROVINCE/POSITION/ASSIGNMENT)
+- [x] Seed data: 26 DRC provinces, 36 DRC ministries
+- [ ] Ministry CRUD UI (web)
+- [ ] Department CRUD UI (web)
+- [ ] Division CRUD UI (web)
+- [ ] User management (create, activate, deactivate) UI
+- [ ] Role assignment UI
 - [ ] User profile page
 
 ## Phase 4 — Channels & Messaging
