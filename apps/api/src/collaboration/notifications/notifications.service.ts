@@ -162,7 +162,7 @@ export class NotificationsService {
   }
 }
 
-interface UnreadCounts {
+export interface UnreadCounts {
   notifications: number;
   mentions: number;
   total: number;

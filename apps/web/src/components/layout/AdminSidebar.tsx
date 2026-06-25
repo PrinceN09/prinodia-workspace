@@ -157,7 +157,11 @@ function BellIcon() {
 function DocumentTextIcon() {
   return (
     <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-      <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
+      <path
+        fillRule="evenodd"
+        d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z"
+        clipRule="evenodd"
+      />
     </svg>
   );
 }
@@ -174,6 +178,38 @@ function TemplateIcon() {
   return (
     <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
       <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z" />
+    </svg>
+  );
+}
+
+function ArrowsRightLeftIcon() {
+  return (
+    <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+      <path
+        fillRule="evenodd"
+        d="M13.2 2.24a.75.75 0 00.04 1.06l2.1 1.95H6.75a.75.75 0 000 1.5h8.59l-2.1 1.95a.75.75 0 101.02 1.1l3.5-3.25a.75.75 0 000-1.1l-3.5-3.25a.75.75 0 00-1.06.04zm-6.4 8a.75.75 0 00-1.06-.04l-3.5 3.25a.75.75 0 000 1.1l3.5 3.25a.75.75 0 101.02-1.1l-2.1-1.95h8.59a.75.75 0 000-1.5H4.66l2.1-1.95a.75.75 0 00.04-1.06z"
+        clipRule="evenodd"
+      />
+    </svg>
+  );
+}
+
+function CheckCircleIcon() {
+  return (
+    <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+      <path
+        fillRule="evenodd"
+        d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z"
+        clipRule="evenodd"
+      />
+    </svg>
+  );
+}
+
+function QueueListIcon() {
+  return (
+    <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+      <path d="M2 4.5A2.5 2.5 0 014.5 2h11A2.5 2.5 0 0118 4.5v3A2.5 2.5 0 0115.5 10h-11A2.5 2.5 0 012 7.5v-3zM15.5 11.75a.75.75 0 01.75.75v3a.75.75 0 01-.75.75h-11a.75.75 0 010-1.5h10.25v-3a.75.75 0 01.75-.75zM2.75 14.75a.75.75 0 01.75-.75h7.5a.75.75 0 010 1.5h-7.5a.75.75 0 01-.75-.75z" />
     </svg>
   );
 }
@@ -270,6 +306,33 @@ const NAV_SECTION_DOCS: NavItem[] = [
     label: "Modèles",
     icon: <TemplateIcon />,
     permission: PERMS.DOCUMENT_READ,
+  },
+];
+
+const NAV_SECTION_WORKFLOW: NavItem[] = [
+  {
+    href: "/admin/workflows",
+    label: "Workflows",
+    icon: <ArrowsRightLeftIcon />,
+    permission: PERMS.WORKFLOW_READ,
+  },
+  {
+    href: "/admin/approvals",
+    label: "Mes approbations",
+    icon: <CheckCircleIcon />,
+    permission: PERMS.WORKFLOW_APPROVE,
+  },
+  {
+    href: "/admin/workflows/templates",
+    label: "Modèles",
+    icon: <TemplateIcon />,
+    permission: PERMS.WORKFLOW_MANAGE_TEMPLATES,
+  },
+  {
+    href: "/admin/tasks",
+    label: "Tâches",
+    icon: <QueueListIcon />,
+    permission: PERMS.TASK_READ,
   },
 ];
 
@@ -399,6 +462,17 @@ export function AdminSidebar({ mobileOpen = false, onMobileClose }: AdminSidebar
             <NavGroup label="Documents">
               <NavSection
                 items={filterItems(NAV_SECTION_DOCS)}
+                pathname={pathname}
+                isActive={isActive}
+              />
+            </NavGroup>
+          )}
+
+          {/* Workflows & Approbations */}
+          {filterItems(NAV_SECTION_WORKFLOW).length > 0 && (
+            <NavGroup label="Workflows & Approbations">
+              <NavSection
+                items={filterItems(NAV_SECTION_WORKFLOW)}
                 pathname={pathname}
                 isActive={isActive}
               />

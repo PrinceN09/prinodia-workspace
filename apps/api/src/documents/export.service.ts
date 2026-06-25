@@ -77,8 +77,8 @@ function tiptapToPdfMake(node: Record<string, unknown>): PdfContent[] {
   if (type === "paragraph") {
     const inlines = children.flatMap((c) => tiptapInline(c));
     return inlines.length > 0
-      ? [{ text: inlines, margin: [0, 0, 0, 6] }]
-      : [{ text: " ", margin: [0, 0, 0, 6] }];
+      ? [{ text: inlines as PdfText[], margin: [0, 0, 0, 6] as [number, number, number, number] }]
+      : [{ text: " ", margin: [0, 0, 0, 6] as [number, number, number, number] }];
   }
 
   if (type === "heading") {
@@ -179,10 +179,10 @@ function tiptapToDocx(node: Record<string, unknown>): unknown[] {
     const level =
       ((node["attrs"] as Record<string, unknown> | undefined)?.["level"] as number) ?? 1;
     const levels: Record<number, unknown> = {
-      1: HeadingLevel.HEADING_1,
-      2: HeadingLevel.HEADING_2,
-      3: HeadingLevel.HEADING_3,
-      4: HeadingLevel.HEADING_4,
+      1: HeadingLevel["HEADING_1"],
+      2: HeadingLevel["HEADING_2"],
+      3: HeadingLevel["HEADING_3"],
+      4: HeadingLevel["HEADING_4"],
     };
     const text = children.map((c) => (c["text"] as string) ?? "").join("");
     return [
@@ -244,16 +244,16 @@ function tiptapToDocx(node: Record<string, unknown>): unknown[] {
         return new TableCell({
           children: [new Paragraph({ text, bold: cell["type"] === "tableHeader" })],
           borders: {
-            top: { style: BorderStyle.SINGLE, size: 1 },
-            bottom: { style: BorderStyle.SINGLE, size: 1 },
-            left: { style: BorderStyle.SINGLE, size: 1 },
-            right: { style: BorderStyle.SINGLE, size: 1 },
+            top: { style: BorderStyle["SINGLE"], size: 1 },
+            bottom: { style: BorderStyle["SINGLE"], size: 1 },
+            left: { style: BorderStyle["SINGLE"], size: 1 },
+            right: { style: BorderStyle["SINGLE"], size: 1 },
           },
         });
       });
       return new TableRow({ children: cells });
     });
-    return [new Table({ rows, width: { size: 100, type: WidthType.PERCENTAGE } })];
+    return [new Table({ rows, width: { size: 100, type: WidthType["PERCENTAGE"] } })];
   }
 
   return [];
@@ -403,7 +403,7 @@ export class ExportService {
               ],
               spacing: { after: 400 },
             }),
-            ...(body as ConstructorParameters<typeof Document>[0]["sections"][0]["children"]),
+            ...((body as { sections?: Array<{ children?: unknown[] }> }).sections?.[0]?.children ?? []),
           ],
         },
       ],

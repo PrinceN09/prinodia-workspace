@@ -19,6 +19,7 @@ import {
 } from "./config";
 import { CollaborationModule } from "./collaboration/collaboration.module";
 import { DocumentsModule } from "./documents/documents.module";
+import { WorkflowsModule } from "./workflows/workflows.module";
 import { GovernmentModule } from "./government/government.module";
 import { HealthModule } from "./health/health.module";
 import { IdentityModule } from "./identity/identity.module";
@@ -70,6 +71,7 @@ import { PrismaModule } from "./prisma/prisma.module";
     GovernmentModule, // Ministries, Departments, Divisions, Provinces, Positions, Assignments
     CollaborationModule, // Channels, Messages, DMs, Presence, Notifications (v0.7.0)
     DocumentsModule, // Documents & Writer Platform (v0.8.0)
+    WorkflowsModule, // Workflow & Digital Approvals Platform (v0.8.1)
 
     // ── Health ───────────────────────────────────────────────────────────────
     HealthModule, // GET /health, /health/live, /health/ready, /health/db

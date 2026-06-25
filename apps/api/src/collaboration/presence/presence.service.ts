@@ -55,13 +55,7 @@ export class PresenceService {
 
     await this.redis.set(this.presenceKey(actor.id), JSON.stringify(state), PRESENCE_TTL);
 
-    // Persist lastSeenAt on ONLINE / heartbeat
-    if (status === "ONLINE") {
-      await this.prisma.user.update({
-        where: { id: actor.id },
-        data: { lastSeenAt: new Date() },
-      });
-    }
+    // Presence is tracked in Redis; no DB write needed here
 
     return state;
   }
@@ -79,11 +73,6 @@ export class PresenceService {
       // Session expired — set ONLINE
       await this.setPresence("ONLINE", actor);
     }
-
-    await this.prisma.user.update({
-      where: { id: actor.id },
-      data: { lastSeenAt: new Date() },
-    });
 
     return { ok: true };
   }
@@ -127,10 +116,6 @@ export class PresenceService {
 
   async clearPresence(userId: string): Promise<void> {
     await this.redis.del(this.presenceKey(userId));
-    await this.prisma.user.update({
-      where: { id: userId },
-      data: { lastSeenAt: new Date() },
-    });
   }
 
   private presenceKey(userId: string): string {
