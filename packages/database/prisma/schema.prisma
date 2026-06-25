@@ -1,4 +1,4 @@
-// GovSphere — Prisma Schema v5 (v0.7.0 — Collaboration Platform)
+// GovSphere — Prisma Schema v6 (v0.8.0 — Documents & Writer Platform)
 // Database: PostgreSQL 17
 // ORM: Prisma 5
 //
@@ -165,6 +165,24 @@ enum AuditAction {
   CHANNEL_UPDATED
   CONVERSATION_CREATED
   DIRECT_MESSAGE_DELETED
+  // Documents (v0.8.0)
+  DOCUMENT_CREATED
+  DOCUMENT_UPDATED
+  DOCUMENT_DELETED
+  DOCUMENT_PUBLISHED
+  DOCUMENT_ARCHIVED
+  DOCUMENT_SHARED
+  DOCUMENT_UNSHARED
+  DOCUMENT_EXPORTED
+  DOCUMENT_VERSION_SAVED
+  DOCUMENT_VERSION_RESTORED
+  DOCUMENT_COMMENT_ADDED
+  DOCUMENT_COMMENT_DELETED
+  DOCUMENT_APPROVAL_REQUESTED
+  DOCUMENT_APPROVED
+  DOCUMENT_REJECTED
+  DOCUMENT_TEMPLATE_CREATED
+  DOCUMENT_TEMPLATE_UPDATED
 }
 
 enum PresenceStatus {
@@ -178,6 +196,53 @@ enum PresenceStatus {
 enum ConversationType {
   DIRECT // 1:1 DM
   GROUP  // multi-user group chat
+}
+
+// ─── Document enums (v0.8.0) ─────────────────────────────────────────────────
+
+enum DocumentClassification {
+  PUBLIC
+  INTERNAL
+  CONFIDENTIAL
+  SECRET
+}
+
+enum DocumentStatus {
+  DRAFT
+  REVIEW
+  APPROVED
+  PUBLISHED
+  ARCHIVED
+}
+
+enum DocumentType {
+  MEMO
+  REPORT
+  CIRCULAR
+  LETTER
+  SPEECH
+  DECREE
+  DIRECTIVE
+  NOTE
+  OTHER
+}
+
+enum DocumentShareScope {
+  USER
+  MINISTRY
+  DEPARTMENT
+  DIVISION
+}
+
+enum DocumentExportFormat {
+  PDF
+  DOCX
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }
 
 enum SupportedLanguage {
@@ -218,6 +283,9 @@ model Ministry {
   users            User[]
   channels         Channel[]
   userRoles        UserRoleAssignment[]
+  documents        Document[]
+  documentShares   DocumentShare[]
+  documentTemplates DocumentTemplate[]
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
 
@@ -239,6 +307,8 @@ model Department {
   users            User[]
   channels         Channel[]
   userRoles        UserRoleAssignment[]
+  documents        Document[]
+  documentShares   DocumentShare[]
   createdAt        DateTime   @default(now())
   updatedAt        DateTime   @updatedAt
 
@@ -260,6 +330,8 @@ model Division {
   userRoles        UserRoleAssignment[]
   positions        Position[]
   channels         Channel[]
+  documents        Document[]
+  documentShares   DocumentShare[]
   createdAt        DateTime   @default(now())
   updatedAt        DateTime   @updatedAt
 
@@ -433,6 +505,16 @@ model User {
   notifications          Notification[]
   auditLogs              AuditLog[]
   uploadedFiles          File[]
+  // Document relations (v0.8.0)
+  authoredDocuments      Document[]           @relation("AuthoredDocuments")
+  savedVersions          DocumentVersion[]    @relation("SavedVersions")
+  documentShares         DocumentShare[]      @relation("SharingUser")
+  receivedShares         DocumentShare[]      @relation("SharedWithUser")
+  documentComments       DocumentComment[]    @relation("DocumentComments")
+  createdTemplates       DocumentTemplate[]   @relation("CreatedTemplates")
+  documentExports        DocumentExport[]     @relation("DocumentExports")
+  approvalRequests       DocumentApproval[]   @relation("ApprovalRequests")
+  approvalReviews        DocumentApproval[]   @relation("DocumentApprovals")
   createdAt           DateTime          @default(now())
   updatedAt           DateTime          @updatedAt
   deletedAt           DateTime?
@@ -1033,4 +1115,187 @@ model AuditLog {
   @@index([userId, createdAt])
   @@index([action, createdAt])
   @@map("audit_logs")
+}
+
+// =============================================================================
+// DOCUMENTS & WRITER PLATFORM (v0.8.0)
+// =============================================================================
+
+model Document {
+  id             String                 @id @default(cuid())
+  title          String                 @db.VarChar(500)
+  slug           String                 @unique @db.VarChar(500)
+  type           DocumentType           @default(OTHER)
+  status         DocumentStatus         @default(DRAFT)
+  classification DocumentClassification @default(INTERNAL)
+  // TipTap ProseMirror JSON content
+  content        Json                   @default("{}")
+  // Plain-text extract for search
+  contentText    String?                @db.Text
+  wordCount      Int                    @default(0)
+  // Template reference
+  templateId     String?
+  template       DocumentTemplate?      @relation(fields: [templateId], references: [id])
+  // Ownership
+  authorId       String
+  author         User                   @relation("AuthoredDocuments", fields: [authorId], references: [id])
+  // Org scope (optional)
+  ministryId     String?
+  ministry       Ministry?              @relation(fields: [ministryId], references: [id])
+  departmentId   String?
+  department     Department?            @relation(fields: [departmentId], references: [id])
+  divisionId     String?
+  division       Division?              @relation(fields: [divisionId], references: [id])
+  tags           String[]
+  // Soft delete
+  deletedAt      DateTime?
+  deletedById    String?
+  // Relations
+  versions       DocumentVersion[]
+  shares         DocumentShare[]
+  comments       DocumentComment[]
+  exports        DocumentExport[]
+  approvals      DocumentApproval[]
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+
+  @@index([authorId])
+  @@index([status])
+  @@index([classification])
+  @@index([ministryId])
+  @@index([type])
+  @@index([createdAt])
+  @@index([deletedAt])
+  @@map("documents")
+}
+
+model DocumentVersion {
+  id          String   @id @default(cuid())
+  documentId  String
+  document    Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  version     Int
+  title       String   @db.VarChar(500)
+  content     Json
+  contentText String?  @db.Text
+  wordCount   Int      @default(0)
+  savedById   String
+  savedBy     User     @relation("SavedVersions", fields: [savedById], references: [id])
+  changeNote  String?  @db.VarChar(500)
+  createdAt   DateTime @default(now())
+
+  @@unique([documentId, version])
+  @@index([documentId])
+  @@index([createdAt])
+  @@map("document_versions")
+}
+
+model DocumentShare {
+  id                 String             @id @default(cuid())
+  documentId         String
+  document           Document           @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  scope              DocumentShareScope
+  // Target — exactly one set
+  targetUserId       String?
+  targetUser         User?              @relation("SharedWithUser", fields: [targetUserId], references: [id])
+  targetMinistryId   String?
+  targetMinistry     Ministry?          @relation(fields: [targetMinistryId], references: [id])
+  targetDepartmentId String?
+  targetDepartment   Department?        @relation(fields: [targetDepartmentId], references: [id])
+  targetDivisionId   String?
+  targetDivision     Division?          @relation(fields: [targetDivisionId], references: [id])
+  // Permissions
+  canEdit            Boolean            @default(false)
+  canComment         Boolean            @default(true)
+  canExport          Boolean            @default(false)
+  sharedById         String
+  sharedBy           User               @relation("SharingUser", fields: [sharedById], references: [id])
+  expiresAt          DateTime?
+  createdAt          DateTime           @default(now())
+
+  @@index([documentId])
+  @@index([targetUserId])
+  @@index([targetMinistryId])
+  @@index([targetDepartmentId])
+  @@index([targetDivisionId])
+  @@map("document_shares")
+}
+
+model DocumentComment {
+  id           String            @id @default(cuid())
+  documentId   String
+  document     Document          @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  authorId     String
+  author       User              @relation("DocumentComments", fields: [authorId], references: [id])
+  content      String            @db.Text
+  replyToId    String?
+  replyTo      DocumentComment?  @relation("CommentReplies", fields: [replyToId], references: [id])
+  replies      DocumentComment[] @relation("CommentReplies")
+  resolvedAt   DateTime?
+  resolvedById String?
+  deletedAt    DateTime?
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  @@index([documentId])
+  @@index([authorId])
+  @@map("document_comments")
+}
+
+model DocumentTemplate {
+  id             String                 @id @default(cuid())
+  name           String                 @db.VarChar(255)
+  description    String?                @db.Text
+  type           DocumentType
+  classification DocumentClassification @default(INTERNAL)
+  content        Json                   @default("{}")
+  isActive       Boolean                @default(true)
+  createdById    String
+  createdBy      User                   @relation("CreatedTemplates", fields: [createdById], references: [id])
+  ministryId     String?
+  ministry       Ministry?              @relation(fields: [ministryId], references: [id])
+  documents      Document[]
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+
+  @@index([type])
+  @@index([ministryId])
+  @@map("document_templates")
+}
+
+model DocumentExport {
+  id           String               @id @default(cuid())
+  documentId   String
+  document     Document             @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  format       DocumentExportFormat
+  versionId    String?
+  exportedById String
+  exportedBy   User                 @relation("DocumentExports", fields: [exportedById], references: [id])
+  fileSize     Int?
+  storageKey   String?              @db.VarChar(500)
+  expiresAt    DateTime?
+  createdAt    DateTime             @default(now())
+
+  @@index([documentId])
+  @@index([exportedById])
+  @@map("document_exports")
+}
+
+model DocumentApproval {
+  id            String         @id @default(cuid())
+  documentId    String
+  document      Document       @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  approverId    String
+  approver      User           @relation("DocumentApprovals", fields: [approverId], references: [id])
+  status        ApprovalStatus @default(PENDING)
+  requestedById String
+  requestedBy   User           @relation("ApprovalRequests", fields: [requestedById], references: [id])
+  comment       String?        @db.Text
+  reviewedAt    DateTime?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  @@index([documentId])
+  @@index([approverId])
+  @@index([status])
+  @@map("document_approvals")
 }

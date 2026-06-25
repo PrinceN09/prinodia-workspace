@@ -18,6 +18,7 @@ import {
   validateEnv,
 } from "./config";
 import { CollaborationModule } from "./collaboration/collaboration.module";
+import { DocumentsModule } from "./documents/documents.module";
 import { GovernmentModule } from "./government/government.module";
 import { HealthModule } from "./health/health.module";
 import { IdentityModule } from "./identity/identity.module";
@@ -68,6 +69,7 @@ import { PrismaModule } from "./prisma/prisma.module";
     IdentityModule, // Auth, Users, Roles, Permissions, MFA, Sessions, Audit
     GovernmentModule, // Ministries, Departments, Divisions, Provinces, Positions, Assignments
     CollaborationModule, // Channels, Messages, DMs, Presence, Notifications (v0.7.0)
+    DocumentsModule, // Documents & Writer Platform (v0.8.0)
 
     // ── Health ───────────────────────────────────────────────────────────────
     HealthModule, // GET /health, /health/live, /health/ready, /health/db

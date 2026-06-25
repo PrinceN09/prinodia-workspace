@@ -154,6 +154,30 @@ function BellIcon() {
   );
 }
 
+function DocumentTextIcon() {
+  return (
+    <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+      <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
+    </svg>
+  );
+}
+
+function ShareIcon() {
+  return (
+    <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+      <path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z" />
+    </svg>
+  );
+}
+
+function TemplateIcon() {
+  return (
+    <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+      <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z" />
+    </svg>
+  );
+}
+
 // ─── Nav items ────────────────────────────────────────────────────────────────
 
 const NAV_SECTION_MAIN: NavItem[] = [
@@ -225,6 +249,27 @@ const NAV_SECTION_COLLAB: NavItem[] = [
     href: "/admin/notifications",
     label: "Notifications",
     icon: <BellIcon />,
+  },
+];
+
+const NAV_SECTION_DOCS: NavItem[] = [
+  {
+    href: "/admin/documents",
+    label: "Bibliothèque",
+    icon: <DocumentTextIcon />,
+    permission: PERMS.DOCUMENT_READ,
+  },
+  {
+    href: "/admin/documents/shared-with-me",
+    label: "Partagés avec moi",
+    icon: <ShareIcon />,
+    permission: PERMS.DOCUMENT_READ,
+  },
+  {
+    href: "/admin/documents/templates",
+    label: "Modèles",
+    icon: <TemplateIcon />,
+    permission: PERMS.DOCUMENT_READ,
   },
 ];
 
@@ -348,6 +393,17 @@ export function AdminSidebar({ mobileOpen = false, onMobileClose }: AdminSidebar
               isActive={isActive}
             />
           </NavGroup>
+
+          {/* Documents */}
+          {filterItems(NAV_SECTION_DOCS).length > 0 && (
+            <NavGroup label="Documents">
+              <NavSection
+                items={filterItems(NAV_SECTION_DOCS)}
+                pathname={pathname}
+                isActive={isActive}
+              />
+            </NavGroup>
+          )}
 
           {/* Sécurité & Audit */}
           {filterItems(NAV_SECTION_SECURITY).length > 0 && (
