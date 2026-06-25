@@ -82,6 +82,51 @@ interface LoginEntry {
   createdAt: string;
 }
 
+interface EmployeeSecurityProfile {
+  passwordChangedAt: string | null;
+  mfaEnabled: boolean;
+  mfaBackupCodesRemaining: number;
+  lastLoginAt: string | null;
+  lastLoginIp: string | null;
+  failedLoginCount: number;
+  lockedUntil: string | null;
+  isLocked: boolean;
+  activeSessions: {
+    id: string;
+    platform: string | null;
+    ipAddress: string | null;
+    userAgent: string | null;
+    lastUsedAt: string;
+    createdAt: string;
+    expiresAt: string;
+    device: { name: string; platform: string; trusted: boolean } | null;
+  }[];
+  devices: {
+    id: string;
+    name: string;
+    platform: string;
+    trusted: boolean;
+    lastSeenAt: string;
+    createdAt: string;
+  }[];
+  recentLoginHistory: {
+    id: string;
+    success: boolean;
+    failReason: string | null;
+    ipAddress: string | null;
+    userAgent: string | null;
+    createdAt: string;
+  }[];
+  recentAuditEvents: {
+    id: string;
+    action: string;
+    category: string;
+    label: string;
+    ipAddress: string | null;
+    createdAt: string;
+  }[];
+}
+
 interface Session {
   id: string;
   platform: string | null;
@@ -558,6 +603,12 @@ export default function EmployeeProfilePage({ params }: { params: Promise<{ id: 
     enabled: !!employee,
   });
 
+  const { data: securityProfile } = useQuery({
+    queryKey: ["employee-security", id],
+    queryFn: () => apiGet<EmployeeSecurityProfile>(`/v1/users/${id}/security`),
+    enabled: !!employee,
+  });
+
   // ── Dialog open states ─────────────────────────────────────────────────────
   const [actionType, setActionType] = useState<
     "activate" | "deactivate" | "suspend" | "archive" | "unlock" | null
@@ -769,6 +820,7 @@ export default function EmployeeProfilePage({ params }: { params: Promise<{ id: 
             <Tab value="workforce">Effectif</Tab>
             <Tab value="login">Connexions</Tab>
             <Tab value="sessions">Sessions</Tab>
+            <Tab value="security">Sécurité</Tab>
           </TabList>
 
           {/* ── Informations ──────────────────────────────────────────────── */}
@@ -1140,6 +1192,179 @@ export default function EmployeeProfilePage({ params }: { params: Promise<{ id: 
                   )}
                 </CardBody>
               </Card>
+            </div>
+          </TabPanel>
+
+          {/* ── Security ──────────────────────────────────────────────────── */}
+          <TabPanel value="security">
+            <div className="mt-4 space-y-4">
+              {!securityProfile ? (
+                <p className="text-sm text-slate-400">Chargement du profil sécurité…</p>
+              ) : (
+                <>
+                  {/* Status cards */}
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+                    <div className="rounded-lg border border-slate-200 bg-white p-4">
+                      <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">
+                        MFA
+                      </p>
+                      <div className="mt-2">
+                        <Badge variant={securityProfile.mfaEnabled ? "green" : "red"}>
+                          {securityProfile.mfaEnabled ? "Activé" : "Désactivé"}
+                        </Badge>
+                      </div>
+                    </div>
+                    <div className="rounded-lg border border-slate-200 bg-white p-4">
+                      <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">
+                        Codes de secours
+                      </p>
+                      <p className="mt-2 text-2xl font-bold tabular-nums text-slate-900">
+                        {securityProfile.mfaBackupCodesRemaining}
+                      </p>
+                    </div>
+                    <div className="rounded-lg border border-slate-200 bg-white p-4">
+                      <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">
+                        Tentatives échouées
+                      </p>
+                      <p
+                        className={`mt-2 text-2xl font-bold tabular-nums ${securityProfile.failedLoginCount > 3 ? "text-red-600" : "text-slate-900"}`}
+                      >
+                        {securityProfile.failedLoginCount}
+                      </p>
+                    </div>
+                    <div className="rounded-lg border border-slate-200 bg-white p-4">
+                      <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">
+                        Verrouillage
+                      </p>
+                      <div className="mt-2">
+                        <Badge variant={securityProfile.isLocked ? "red" : "green"}>
+                          {securityProfile.isLocked ? "Verrouillé" : "Normal"}
+                        </Badge>
+                      </div>
+                      {securityProfile.lockedUntil && (
+                        <p className="mt-1 text-[10px] text-slate-400">
+                          jusqu&apos;au {fmtDateShort(securityProfile.lockedUntil)}
+                        </p>
+                      )}
+                    </div>
+                    <div className="rounded-lg border border-slate-200 bg-white p-4">
+                      <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">
+                        Mot de passe modifié
+                      </p>
+                      <p className="mt-2 text-sm text-slate-700">
+                        {fmtDateShort(securityProfile.passwordChangedAt)}
+                      </p>
+                    </div>
+                    <div className="rounded-lg border border-slate-200 bg-white p-4">
+                      <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">
+                        Dernière connexion
+                      </p>
+                      <p className="mt-2 text-sm text-slate-700">
+                        {fmtDateShort(securityProfile.lastLoginAt)}
+                      </p>
+                      {securityProfile.lastLoginIp && (
+                        <p className="mt-0.5 font-mono text-[10px] text-slate-400">
+                          {securityProfile.lastLoginIp}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Devices */}
+                  <Card>
+                    <CardHeader
+                      title="Appareils connus"
+                      subtitle={`${securityProfile.devices.length} appareil(s)`}
+                    />
+                    <CardBody className="p-0">
+                      {securityProfile.devices.length === 0 ? (
+                        <p className="px-5 py-4 text-sm text-slate-400">
+                          Aucun appareil enregistré
+                        </p>
+                      ) : (
+                        <div className="divide-y divide-slate-100">
+                          {securityProfile.devices.map((d) => (
+                            <div key={d.id} className="flex items-center justify-between px-5 py-3">
+                              <div>
+                                <p className="text-sm font-medium text-slate-900">{d.name}</p>
+                                <p className="text-xs text-slate-500">
+                                  {d.platform} · Vu le {fmtDateShort(d.lastSeenAt)}
+                                </p>
+                              </div>
+                              <Badge variant={d.trusted ? "green" : "gray"}>
+                                {d.trusted ? "Approuvé" : "Non approuvé"}
+                              </Badge>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </CardBody>
+                  </Card>
+
+                  {/* Login History */}
+                  <Card>
+                    <CardHeader title="Historique de connexions récentes" />
+                    <CardBody className="p-0">
+                      {securityProfile.recentLoginHistory.length === 0 ? (
+                        <p className="px-5 py-4 text-sm text-slate-400">Aucun historique</p>
+                      ) : (
+                        <div className="divide-y divide-slate-100">
+                          {securityProfile.recentLoginHistory.map((h) => (
+                            <div
+                              key={h.id}
+                              className="flex items-start justify-between px-5 py-2.5"
+                            >
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <Badge variant={h.success ? "green" : "red"}>
+                                    {h.success ? "Succès" : "Échec"}
+                                  </Badge>
+                                  {h.failReason && (
+                                    <span className="text-xs text-slate-500">{h.failReason}</span>
+                                  )}
+                                </div>
+                                <p className="mt-0.5 text-xs text-slate-400">
+                                  {h.ipAddress ?? "—"} · {fmtDateShort(h.createdAt)}
+                                </p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </CardBody>
+                  </Card>
+
+                  {/* Recent audit events */}
+                  <Card>
+                    <CardHeader title="Événements d'audit récents" />
+                    <CardBody className="p-0">
+                      {securityProfile.recentAuditEvents.length === 0 ? (
+                        <p className="px-5 py-4 text-sm text-slate-400">Aucun événement</p>
+                      ) : (
+                        <div className="divide-y divide-slate-100">
+                          {securityProfile.recentAuditEvents.map((ev) => (
+                            <div
+                              key={ev.id}
+                              className="flex items-center justify-between px-5 py-2.5"
+                            >
+                              <div>
+                                <p className="text-sm text-slate-800">{ev.label}</p>
+                                <p className="text-xs text-slate-400">
+                                  {ev.ipAddress && `${ev.ipAddress} · `}
+                                  {fmtDateShort(ev.createdAt)}
+                                </p>
+                              </div>
+                              <span className="text-[10px] font-mono text-slate-400 uppercase">
+                                {ev.category}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </CardBody>
+                  </Card>
+                </>
+              )}
             </div>
           </TabPanel>
         </Tabs>

@@ -82,6 +82,42 @@ function ChartBarIcon() {
   );
 }
 
+function ShieldCheckIcon() {
+  return (
+    <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+      <path
+        fillRule="evenodd"
+        d="M9.661 2.237a.531.531 0 01.678 0 11.947 11.947 0 007.078 2.749.5.5 0 01.479.425c.069.52.104 1.05.104 1.589 0 5.162-3.26 9.563-7.924 11.182a.53.53 0 01-.352 0C5.26 16.563 2 12.162 2 7c0-.538.035-1.069.104-1.589a.5.5 0 01.48-.425 11.947 11.947 0 007.077-2.749zm2.55 5.396a.75.75 0 00-1.06-1.061l-2.651 2.65-.905-.905a.75.75 0 10-1.06 1.06l1.435 1.436a.75.75 0 001.06 0l3.18-3.18z"
+        clipRule="evenodd"
+      />
+    </svg>
+  );
+}
+
+function ComputerDesktopIcon() {
+  return (
+    <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+      <path
+        fillRule="evenodd"
+        d="M2 4.25A2.25 2.25 0 014.25 2h11.5A2.25 2.25 0 0118 4.25v8.5A2.25 2.25 0 0115.75 15h-3.105a3.501 3.501 0 001.1 1.677A.75.75 0 0113.26 18H6.74a.75.75 0 01-.484-1.323A3.501 3.501 0 007.355 15H4.25A2.25 2.25 0 012 12.75v-8.5zm1.5 0a.75.75 0 01.75-.75h11.5a.75.75 0 01.75.75v7.5a.75.75 0 01-.75.75H4.25a.75.75 0 01-.75-.75v-7.5z"
+        clipRule="evenodd"
+      />
+    </svg>
+  );
+}
+
+function ClipboardDocumentListIcon() {
+  return (
+    <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+      <path
+        fillRule="evenodd"
+        d="M15.988 3.012A2.25 2.25 0 0118 5.25v6.5A2.25 2.25 0 0115.75 14H13.5v-3.379a3 3 0 00-.879-2.121l-3.12-3.121a3 3 0 00-1.402-.791V2.988a2.25 2.25 0 012.287.037l.124.082a2.25 2.25 0 001.877.319l.002-.001.02-.004a.75.75 0 01.85.47A1.5 1.5 0 0012.75 3H12a.75.75 0 010-1.5h.75a3 3 0 011.538.42l.012.006.012.007.01.005.003.002.003.001.006.004.003.001a.75.75 0 01.651-.921zm-3.876 1.498A1.5 1.5 0 0114 6.75v.019A1.5 1.5 0 0113.5 9h-9A1.5 1.5 0 013 7.5v-3A1.5 1.5 0 014.5 3h6a1.5 1.5 0 011.612 1.51zM2 11.5a.5.5 0 01.5-.5h8a.5.5 0 010 1h-8a.5.5 0 01-.5-.5zm0 2a.5.5 0 01.5-.5h5a.5.5 0 010 1h-5a.5.5 0 01-.5-.5z"
+        clipRule="evenodd"
+      />
+    </svg>
+  );
+}
+
 // ─── Nav items ────────────────────────────────────────────────────────────────
 
 const NAV_SECTION_MAIN: NavItem[] = [
@@ -123,6 +159,39 @@ const NAV_SECTION_HR: NavItem[] = [
     permission: PERMS.POSITION_READ,
   },
   { href: "/admin/employees", label: "Agents", icon: <UsersIcon />, permission: PERMS.USER_READ },
+  {
+    href: "/admin/workforce",
+    label: "Effectif",
+    icon: <ChartBarIcon />,
+    permission: PERMS.USER_READ,
+  },
+  {
+    href: "/admin/org-chart",
+    label: "Organigramme",
+    icon: <GridIcon />,
+    permission: PERMS.USER_READ,
+  },
+];
+
+const NAV_SECTION_SECURITY: NavItem[] = [
+  {
+    href: "/admin/security",
+    label: "Tableau de bord",
+    icon: <ShieldCheckIcon />,
+    permission: PERMS.ADMIN_VIEW_AUDIT_LOGS_ALL,
+  },
+  {
+    href: "/admin/security/sessions",
+    label: "Sessions",
+    icon: <ComputerDesktopIcon />,
+    permission: PERMS.ADMIN_VIEW_AUDIT_LOGS_ALL,
+  },
+  {
+    href: "/admin/audit",
+    label: "Journal d'audit",
+    icon: <ClipboardDocumentListIcon />,
+    permission: PERMS.ADMIN_VIEW_AUDIT_LOGS_MINISTRY,
+  },
 ];
 
 // ─── Props ────────────────────────────────────────────────────────────────────
@@ -215,6 +284,17 @@ export function AdminSidebar({ mobileOpen = false, onMobileClose }: AdminSidebar
               isActive={isActive}
             />
           </NavGroup>
+
+          {/* Sécurité & Audit */}
+          {filterItems(NAV_SECTION_SECURITY).length > 0 && (
+            <NavGroup label="Sécurité & Audit">
+              <NavSection
+                items={filterItems(NAV_SECTION_SECURITY)}
+                pathname={pathname}
+                isActive={isActive}
+              />
+            </NavGroup>
+          )}
         </nav>
 
         {/* Footer */}

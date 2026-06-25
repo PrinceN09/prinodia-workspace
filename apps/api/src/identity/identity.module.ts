@@ -5,6 +5,7 @@ import { AuthModule } from "./auth/auth.module";
 import { MfaModule } from "./mfa/mfa.module";
 import { PermissionsModule } from "./permissions/permissions.module";
 import { RolesModule } from "./roles/roles.module";
+import { SecurityModule } from "./security/security.module";
 import { SessionsModule } from "./sessions/sessions.module";
 import { UsersModule } from "./users/users.module";
 import { WorkforceModule } from "./workforce/workforce.module";
@@ -27,6 +28,7 @@ import { WorkforceModule } from "./workforce/workforce.module";
     AuthModule,
     MfaModule,
     WorkforceModule,
+    SecurityModule,
   ],
   exports: [
     AuthModule,
@@ -37,6 +39,7 @@ import { WorkforceModule } from "./workforce/workforce.module";
     MfaModule,
     AuditModule,
     WorkforceModule,
+    SecurityModule,
   ],
 })
 export class IdentityModule {}

@@ -4,11 +4,12 @@ import { CreateUserDto } from "./dto/create-user.dto";
 import { InviteEmployeeDto } from "./dto/invite-employee.dto";
 import { UpdateUserStatusDto } from "./dto/update-user-status.dto";
 import { UsersService } from "./users.service";
+import { AuditService } from "../audit/audit.service";
+import { SecurityService } from "../security/security.service";
 import { CurrentUser } from "../../common/decorators/current-user.decorator";
 import { RequirePermissions } from "../../common/decorators/permissions.decorator";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { PermissionsGuard } from "../../common/guards/permissions.guard";
-import { AuditService } from "../audit/audit.service";
 
 import type { AuthenticatedUser } from "../../common/types/auth.types";
 import type { Request } from "express";
@@ -22,6 +23,7 @@ export class UsersController {
   constructor(
     private readonly usersService: UsersService,
     private readonly auditService: AuditService,
+    private readonly securityService: SecurityService,
   ) {}
 
   // ── List ─────────────────────────────────────────────────────────────────
@@ -145,5 +147,13 @@ export class UsersController {
   @RequirePermissions("USER:READ_MINISTRY")
   getTimeline(@Param("id") id: string, @Query("limit") limit?: string): Promise<unknown[]> {
     return this.auditService.getTimelineForUser(id, limit ? parseInt(limit, 10) : 100);
+  }
+
+  // ── Security Profile ──────────────────────────────────────────────────────
+
+  @Get(":id/security")
+  @RequirePermissions("USER:READ_MINISTRY")
+  getUserSecurity(@Param("id") id: string): Promise<unknown> {
+    return this.securityService.getUserSecurityProfile(id);
   }
 }
