@@ -45,14 +45,14 @@ ALTER TABLE "channels"
   ADD COLUMN IF NOT EXISTS "lastMessageAt" TIMESTAMP(3);
 
 ALTER TABLE "channels"
-  ADD CONSTRAINT IF NOT EXISTS "channels_divisionId_fkey"
+  ADD CONSTRAINT "channels_divisionId_fkey"
     FOREIGN KEY ("divisionId") REFERENCES "divisions"("id") ON DELETE SET NULL,
-  ADD CONSTRAINT IF NOT EXISTS "channels_provinceId_fkey"
+  ADD CONSTRAINT "channels_provinceId_fkey"
     FOREIGN KEY ("provinceId") REFERENCES "provinces"("id") ON DELETE SET NULL;
 
-CREATE INDEX CONCURRENTLY IF NOT EXISTS "channels_divisionId_idx"  ON "channels"("divisionId");
-CREATE INDEX CONCURRENTLY IF NOT EXISTS "channels_provinceId_idx"  ON "channels"("provinceId");
-CREATE INDEX CONCURRENTLY IF NOT EXISTS "channels_isArchived_idx"  ON "channels"("isArchived");
+CREATE INDEX IF NOT EXISTS "channels_divisionId_idx"  ON "channels"("divisionId");
+CREATE INDEX IF NOT EXISTS "channels_provinceId_idx"  ON "channels"("provinceId");
+CREATE INDEX IF NOT EXISTS "channels_isArchived_idx"  ON "channels"("isArchived");
 
 -- ---------------------------------------------------------------------------
 -- 4. Alter channel_members table
@@ -62,14 +62,14 @@ ALTER TABLE "channel_members"
   ADD COLUMN IF NOT EXISTS "muteNotifications" BOOLEAN NOT NULL DEFAULT FALSE,
   ADD COLUMN IF NOT EXISTS "leftAt"            TIMESTAMP(3);
 
-CREATE INDEX CONCURRENTLY IF NOT EXISTS "channel_members_channelId_lastReadAt_idx"
+CREATE INDEX IF NOT EXISTS "channel_members_channelId_lastReadAt_idx"
   ON "channel_members"("channelId", "lastReadAt");
 
 -- ---------------------------------------------------------------------------
 -- 5. Alter messages table — compound index for cursor pagination
 -- ---------------------------------------------------------------------------
 
-CREATE INDEX CONCURRENTLY IF NOT EXISTS "messages_channelId_createdAt_idx"
+CREATE INDEX IF NOT EXISTS "messages_channelId_createdAt_idx"
   ON "messages"("channelId", "createdAt" DESC);
 
 -- ---------------------------------------------------------------------------
@@ -95,9 +95,9 @@ CREATE TABLE IF NOT EXISTS "mentions" (
     FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE
 );
 
-CREATE INDEX CONCURRENTLY IF NOT EXISTS "mentions_userId_isRead_idx" ON "mentions"("userId", "isRead");
-CREATE INDEX CONCURRENTLY IF NOT EXISTS "mentions_messageId_idx"     ON "mentions"("messageId");
-CREATE INDEX CONCURRENTLY IF NOT EXISTS "mentions_channelId_idx"     ON "mentions"("channelId");
+CREATE INDEX IF NOT EXISTS "mentions_userId_isRead_idx" ON "mentions"("userId", "isRead");
+CREATE INDEX IF NOT EXISTS "mentions_messageId_idx"     ON "mentions"("messageId");
+CREATE INDEX IF NOT EXISTS "mentions_channelId_idx"     ON "mentions"("channelId");
 
 -- ---------------------------------------------------------------------------
 -- 7. Create read_receipts table
@@ -117,8 +117,8 @@ CREATE TABLE IF NOT EXISTS "read_receipts" (
     FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE
 );
 
-CREATE INDEX CONCURRENTLY IF NOT EXISTS "read_receipts_messageId_idx" ON "read_receipts"("messageId");
-CREATE INDEX CONCURRENTLY IF NOT EXISTS "read_receipts_userId_idx"    ON "read_receipts"("userId");
+CREATE INDEX IF NOT EXISTS "read_receipts_messageId_idx" ON "read_receipts"("messageId");
+CREATE INDEX IF NOT EXISTS "read_receipts_userId_idx"    ON "read_receipts"("userId");
 
 -- ---------------------------------------------------------------------------
 -- 8. Create conversations table
@@ -138,8 +138,8 @@ CREATE TABLE IF NOT EXISTS "conversations" (
   CONSTRAINT "conversations_pkey" PRIMARY KEY ("id")
 );
 
-CREATE INDEX CONCURRENTLY IF NOT EXISTS "conversations_createdById_idx"   ON "conversations"("createdById");
-CREATE INDEX CONCURRENTLY IF NOT EXISTS "conversations_lastMessageAt_idx" ON "conversations"("lastMessageAt");
+CREATE INDEX IF NOT EXISTS "conversations_createdById_idx"   ON "conversations"("createdById");
+CREATE INDEX IF NOT EXISTS "conversations_lastMessageAt_idx" ON "conversations"("lastMessageAt");
 
 -- ---------------------------------------------------------------------------
 -- 9. Create conversation_members table
@@ -161,8 +161,8 @@ CREATE TABLE IF NOT EXISTS "conversation_members" (
     FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE
 );
 
-CREATE INDEX CONCURRENTLY IF NOT EXISTS "conversation_members_conversationId_idx" ON "conversation_members"("conversationId");
-CREATE INDEX CONCURRENTLY IF NOT EXISTS "conversation_members_userId_idx"         ON "conversation_members"("userId");
+CREATE INDEX IF NOT EXISTS "conversation_members_conversationId_idx" ON "conversation_members"("conversationId");
+CREATE INDEX IF NOT EXISTS "conversation_members_userId_idx"         ON "conversation_members"("userId");
 
 -- ---------------------------------------------------------------------------
 -- 10. Create direct_messages table
@@ -189,9 +189,9 @@ CREATE TABLE IF NOT EXISTS "direct_messages" (
     FOREIGN KEY ("replyToId") REFERENCES "direct_messages"("id")
 );
 
-CREATE INDEX CONCURRENTLY IF NOT EXISTS "direct_messages_conversationId_createdAt_idx"
+CREATE INDEX IF NOT EXISTS "direct_messages_conversationId_createdAt_idx"
   ON "direct_messages"("conversationId", "createdAt" DESC);
-CREATE INDEX CONCURRENTLY IF NOT EXISTS "direct_messages_senderId_idx" ON "direct_messages"("senderId");
+CREATE INDEX IF NOT EXISTS "direct_messages_senderId_idx" ON "direct_messages"("senderId");
 
 -- ---------------------------------------------------------------------------
 -- 11. Create dm_reactions table
@@ -212,7 +212,7 @@ CREATE TABLE IF NOT EXISTS "dm_reactions" (
     FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE
 );
 
-CREATE INDEX CONCURRENTLY IF NOT EXISTS "dm_reactions_messageId_idx" ON "dm_reactions"("messageId");
+CREATE INDEX IF NOT EXISTS "dm_reactions_messageId_idx" ON "dm_reactions"("messageId");
 
 -- ---------------------------------------------------------------------------
 -- 12. Create conversation_settings table
@@ -235,5 +235,5 @@ CREATE TABLE IF NOT EXISTS "conversation_settings" (
     FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE
 );
 
-CREATE INDEX CONCURRENTLY IF NOT EXISTS "conversation_settings_conversationId_idx"
+CREATE INDEX IF NOT EXISTS "conversation_settings_conversationId_idx"
   ON "conversation_settings"("conversationId");

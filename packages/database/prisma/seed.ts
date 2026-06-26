@@ -271,6 +271,31 @@ const PERMISSIONS = [
     action: "UPDATE",
     displayName: "Update employee assignments",
   },
+  // ── Organizations (v1.0.2) ────────────────────────────────────────────────
+  {
+    key: "ORGANIZATION:READ",
+    resource: "ORGANIZATION",
+    action: "READ",
+    displayName: "Read organizations",
+  },
+  {
+    key: "ORGANIZATION:CREATE",
+    resource: "ORGANIZATION",
+    action: "CREATE",
+    displayName: "Create organizations",
+  },
+  {
+    key: "ORGANIZATION:UPDATE",
+    resource: "ORGANIZATION",
+    action: "UPDATE",
+    displayName: "Update organizations",
+  },
+  {
+    key: "ORGANIZATION:DELETE",
+    resource: "ORGANIZATION",
+    action: "DELETE",
+    displayName: "Delete (archive) organizations",
+  },
 ] as const;
 
 // ---------------------------------------------------------------------------
@@ -853,6 +878,92 @@ async function main(): Promise<void> {
     });
   }
   console.log(`    ✅ ${MINISTRIES.length} ministries seeded`);
+
+  // ── Organizations (v1.0.2) ─────────────────────────────────────────────────
+  // Uses $executeRaw to avoid needing the prisma client to be regenerated first.
+  console.log("  → Seeding 6 seed organizations (v1.0.2)...");
+
+  const SEED_ORGS = [
+    {
+      code: "PRINODIA-TECH",
+      name: "Prinodia Technologies",
+      type: "ENTERPRISE" as const,
+      description: "Éditeur de la plateforme Prinodia Workspace.",
+      email: "contact@prinodia.com",
+      country: "Congo (DRC)",
+      city: "Kinshasa",
+    },
+    {
+      code: "MINFIN-GOV",
+      name: "Ministère des Finances",
+      type: "GOVERNMENT" as const,
+      description: "Gestion des finances publiques et du budget de l'État.",
+      email: "info@finances.gouv.cd",
+      country: "Congo (DRC)",
+      city: "Kinshasa",
+    },
+    {
+      code: "UNIV-NAT",
+      name: "Université Nationale",
+      type: "EDUCATION" as const,
+      description: "Établissement d'enseignement supérieur et de recherche.",
+      email: "contact@univnat.cd",
+      country: "Congo (DRC)",
+      city: "Lubumbashi",
+    },
+    {
+      code: "HOPITAL-CENTRAL",
+      name: "Hôpital Central",
+      type: "HEALTHCARE" as const,
+      description: "Établissement hospitalier de référence nationale.",
+      email: "info@hopitalcentral.cd",
+      country: "Congo (DRC)",
+      city: "Kinshasa",
+    },
+    {
+      code: "HOPE-FOUNDATION",
+      name: "Hope Foundation",
+      type: "NGO" as const,
+      description: "Organisation humanitaire dédiée à l'aide aux communautés vulnérables.",
+      email: "contact@hopefoundation.org",
+      country: "Congo (DRC)",
+      city: "Goma",
+    },
+    {
+      code: "LOCAL-CHURCH-NET",
+      name: "Local Church Network",
+      type: "CHURCH" as const,
+      description: "Réseau d'églises locales et de communautés de foi.",
+      email: "info@localchurchnet.org",
+      country: "Congo (DRC)",
+      city: "Kinshasa",
+    },
+  ] as const;
+
+  for (const org of SEED_ORGS) {
+    await prisma.$executeRaw`
+      INSERT INTO organizations (id, name, code, type, status, description, email, country, city, "createdAt", "updatedAt")
+      VALUES (
+        gen_random_uuid()::text,
+        ${org.name},
+        ${org.code},
+        ${org.type}::"OrganizationType",
+        'ACTIVE'::"OrganizationStatus",
+        ${org.description},
+        ${org.email},
+        ${org.country},
+        ${org.city},
+        NOW(),
+        NOW()
+      )
+      ON CONFLICT (code) DO UPDATE SET
+        name        = EXCLUDED.name,
+        description = EXCLUDED.description,
+        email       = EXCLUDED.email,
+        "updatedAt" = NOW()
+    `;
+  }
+  console.log(`    ✅ ${SEED_ORGS.length} seed organizations upserted`);
 
   console.log("🌱 Seed complete.");
 }

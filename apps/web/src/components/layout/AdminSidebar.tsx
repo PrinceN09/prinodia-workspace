@@ -247,6 +247,16 @@ function PlusCircleIcon() {
   );
 }
 
+// ─── Organization icons ───────────────────────────────────────────────────────
+
+function GlobeAltIcon() {
+  return (
+    <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+      <path d="M10 2a8 8 0 100 16A8 8 0 0010 2zM6.94 4.76A6.5 6.5 0 019.5 4.03v1.47a7.507 7.507 0 00-2.56 1.232V4.76zm5.62 0v1.974A7.507 7.507 0 0110.5 5.5V4.03a6.5 6.5 0 012.06.73zM10.5 7.002V8.5H9.5V7.002a5.99 5.99 0 011 0zM4.1 7.337A6.48 6.48 0 018 6.007V7.5a6.99 6.99 0 00-2.65.773L4.1 7.337zm10.45 0l-1.25.936A6.988 6.988 0 0010.5 7.5h-.001V6.007a6.48 6.48 0 013.551 1.33zM3.5 10a6.5 6.5 0 010-1h13a6.5 6.5 0 010 1h-13zm.6 2.663l1.25-.936A6.988 6.988 0 009.5 12.5v1.493a6.48 6.48 0 01-3.551-1.33H5.95zM10.5 13.993V12.5a6.99 6.99 0 002.65-.773l1.25.936A6.48 6.48 0 0110.5 13.993zM9.5 15.97a6.5 6.5 0 01-2.06-.73V13.26a7.507 7.507 0 002.06 1.21v1.5zm1 0v-1.5a7.507 7.507 0 002.56-1.21v1.98a6.5 6.5 0 01-2.56.73z" />
+    </svg>
+  );
+}
+
 // ─── Executive icons ──────────────────────────────────────────────────────────
 
 function StarIcon() {
@@ -270,6 +280,18 @@ function BuildingLibraryIcon() {
         clipRule="evenodd"
       />
       <path d="M3.5 11.25a.75.75 0 01.75-.75h1.5a.75.75 0 010 1.5H4.25a.75.75 0 01-.75-.75zM3.5 13.25a.75.75 0 01.75-.75h1.5a.75.75 0 010 1.5H4.25a.75.75 0 01-.75-.75zM8.5 11.25a.75.75 0 01.75-.75h1.5a.75.75 0 010 1.5H9.25a.75.75 0 01-.75-.75zM8.5 13.25a.75.75 0 01.75-.75h1.5a.75.75 0 010 1.5H9.25a.75.75 0 01-.75-.75zM13.5 11.25a.75.75 0 01.75-.75h1.5a.75.75 0 010 1.5H14.25a.75.75 0 01-.75-.75zM13.5 13.25a.75.75 0 01.75-.75h1.5a.75.75 0 010 1.5H14.25a.75.75 0 01-.75-.75zM2 16.25A.75.75 0 012.75 15.5h14.5a.75.75 0 010 1.5H2.75A.75.75 0 012 16.25z" />
+    </svg>
+  );
+}
+
+function BeakerIcon() {
+  return (
+    <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+      <path
+        fillRule="evenodd"
+        d="M8.5 3.528v4.644c0 .729-.29 1.428-.805 1.944l-4.208 4.208a1.75 1.75 0 001.238 2.986H15.275a1.75 1.75 0 001.238-2.986l-4.208-4.208A2.75 2.75 0 0111.5 8.172V3.528a1.25 1.25 0 10-3 0zM8 1.5a3 3 0 016 0v.264a5.5 5.5 0 012.012 4.408l4.208 4.208A3.25 3.25 0 0117.775 16.5H2.225a3.25 3.25 0 01-2.445-5.12l4.208-4.208A5.5 5.5 0 016 2.764V1.5z"
+        clipRule="evenodd"
+      />
     </svg>
   );
 }
@@ -521,6 +543,24 @@ const NAV_SECTION_EXECUTIVE: NavItem[] = [
   },
 ];
 
+const NAV_SECTION_PLATFORM: NavItem[] = [
+  {
+    href: "/admin/organizations",
+    label: "Organisations",
+    icon: <GlobeAltIcon />,
+    permission: PERMS.ORGANIZATION_READ,
+  },
+];
+
+const NAV_SECTION_ADMIN: NavItem[] = [
+  {
+    href: "/admin/demo",
+    label: "Données de démo",
+    icon: <BeakerIcon />,
+    permission: PERMS.ADMIN_VIEW_AUDIT_LOGS_ALL,
+  },
+];
+
 const NAV_SECTION_SECURITY: NavItem[] = [
   {
     href: "/admin/security",
@@ -686,11 +726,33 @@ export function AdminSidebar({ mobileOpen = false, onMobileClose }: AdminSidebar
             </NavGroup>
           )}
 
+          {/* Plateforme */}
+          {filterItems(NAV_SECTION_PLATFORM).length > 0 && (
+            <NavGroup label="Plateforme">
+              <NavSection
+                items={filterItems(NAV_SECTION_PLATFORM)}
+                pathname={pathname}
+                isActive={isActive}
+              />
+            </NavGroup>
+          )}
+
           {/* Sécurité & Audit */}
           {filterItems(NAV_SECTION_SECURITY).length > 0 && (
             <NavGroup label="Sécurité & Audit">
               <NavSection
                 items={filterItems(NAV_SECTION_SECURITY)}
+                pathname={pathname}
+                isActive={isActive}
+              />
+            </NavGroup>
+          )}
+
+          {/* Administration */}
+          {filterItems(NAV_SECTION_ADMIN).length > 0 && (
+            <NavGroup label="Administration">
+              <NavSection
+                items={filterItems(NAV_SECTION_ADMIN)}
                 pathname={pathname}
                 isActive={isActive}
               />
