@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 
@@ -9,7 +10,7 @@ import { Button } from "@/components/ui/Button";
 import { PageSpinner } from "@/components/ui/Spinner";
 import { apiGet, apiPost } from "@/lib/api";
 
-type FilterKey = "ALL" | "UNREAD" | "MENTIONS";
+type FilterKey = "ALL" | "UNREAD" | "MENTIONS" | "SYSTEM" | "TASK";
 
 interface Notification {
   id: string;
@@ -60,6 +61,19 @@ function fmtDate(iso: string): string {
   });
 }
 
+/** Resolve entity URL from notification data field */
+function getEntityLink(n: Notification): string | null {
+  const d = n.data;
+  if (!d) return null;
+  if (typeof d["meetingId"] === "string") return `/admin/meetings/${d["meetingId"]}`;
+  if (typeof d["documentId"] === "string") return `/admin/documents/${d["documentId"]}`;
+  if (typeof d["taskId"] === "string") return `/admin/tasks/${d["taskId"]}`;
+  if (typeof d["workflowId"] === "string") return `/admin/workflows/${d["workflowId"]}`;
+  if (typeof d["channelId"] === "string") return `/admin/channels/${d["channelId"]}`;
+  if (typeof d["userId"] === "string") return `/admin/employees/${d["userId"]}`;
+  return null;
+}
+
 export default function NotificationsPage() {
   const [filter, setFilter] = useState<FilterKey>("ALL");
   const qc = useQueryClient();
@@ -107,6 +121,8 @@ export default function NotificationsPage() {
       label: "Mentions",
       ...(counts?.mentions !== undefined ? { count: counts.mentions } : {}),
     },
+    { key: "TASK", label: "Tâches" },
+    { key: "SYSTEM", label: "Système" },
   ];
 
   return (
@@ -159,18 +175,17 @@ export default function NotificationsPage() {
             </div>
           ) : notifications.length === 0 ? (
             <div className="py-16 text-center">
-              <svg
-                className="mx-auto h-10 w-10 text-slate-300"
-                viewBox="0 0 24 24"
-                fill="currentColor"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M5.25 9a6.75 6.75 0 0113.5 0v.75c0 2.123.8 4.057 2.118 5.52a.75.75 0 01-.297 1.206c-1.544.57-3.16.99-4.831 1.243a3.75 3.75 0 11-7.48 0 24.585 24.585 0 01-4.831-1.244.75.75 0 01-.298-1.205A8.217 8.217 0 005.25 9.75V9zm4.502 8.9a2.25 2.25 0 104.496 0 25.057 25.057 0 01-4.496 0z"
-                  clipRule="evenodd"
-                />
-              </svg>
-              <p className="mt-3 text-sm text-slate-500">Aucune notification.</p>
+              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-slate-100">
+                <svg className="h-7 w-7 text-slate-400" viewBox="0 0 24 24" fill="currentColor">
+                  <path fillRule="evenodd" d="M5.25 9a6.75 6.75 0 0113.5 0v.75c0 2.123.8 4.057 2.118 5.52a.75.75 0 01-.297 1.206c-1.544.57-3.16.99-4.831 1.243a3.75 3.75 0 11-7.48 0 24.585 24.585 0 01-4.831-1.244.75.75 0 01-.298-1.205A8.217 8.217 0 005.25 9.75V9zm4.502 8.9a2.25 2.25 0 104.496 0 25.057 25.057 0 01-4.496 0z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <p className="mt-4 text-sm font-medium text-slate-700">
+                {filter === "ALL" ? "Aucune notification pour l'instant" : `Aucune notification dans cette catégorie`}
+              </p>
+              <p className="mt-1 text-xs text-slate-400">
+                {filter === "UNREAD" ? "Vous avez lu toutes vos notifications." : "Les nouvelles notifications apparaîtront ici."}
+              </p>
             </div>
           ) : (
             <ul className="space-y-2">
@@ -197,6 +212,14 @@ export default function NotificationsPage() {
                           </Badge>
                         </div>
                         <p className="mt-0.5 text-sm text-slate-600">{n.body}</p>
+                        {getEntityLink(n) && (
+                          <Link
+                            href={getEntityLink(n)!}
+                            className="mt-1 text-xs font-medium text-primary-600 hover:underline"
+                          >
+                            Voir le détail →
+                          </Link>
+                        )}
                       </div>
                       <div className="flex flex-shrink-0 flex-col items-end gap-1">
                         <span className="text-[10px] text-slate-400">{fmtDate(n.createdAt)}</span>

@@ -127,4 +127,17 @@ export const PERMS = {
   EXECUTIVE_ANNOUNCEMENT_PUBLISH: "EXECUTIVE_ANNOUNCEMENT:PUBLISH",
   KPI_READ: "KPI:READ",
   KPI_MANAGE: "KPI:MANAGE",
+
+  // ── Organizations (v1.0.2) ────────────────────────────────────────────────
+  ORGANIZATION_READ: "ORGANIZATION:READ",
+  ORGANIZATION_CREATE: "ORGANIZATION:CREATE",
+  ORGANIZATION_UPDATE: "ORGANIZATION:UPDATE",
+  ORGANIZATION_DELETE: "ORGANIZATION:DELETE",
+
+  // ── Demo Environment (v1.1.0) ─────────────────────────────────────────────
+  DEMO_READ: "DEMO:READ",
+  DEMO_MANAGE: "DEMO:MANAGE",
+
+  // ── Search (v1.1.0) ───────────────────────────────────────────────────────
+  SEARCH_READ: "SEARCH:READ",
 } as const;

@@ -1,10 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
 
 import { AdminTopBar } from "@/components/layout/AdminTopBar";
 import { StatCard } from "@/components/ui/StatCard";
+import { Button } from "@/components/ui/Button";
 import { apiGet } from "@/lib/api";
 
 import type { PaginatedResponse } from "@/lib/api";
@@ -195,6 +197,54 @@ export default function DashboardPage() {
           </div>
         )}
 
+        {/* Quick actions */}
+        <div className="border border-slate-200 bg-white">
+          <div className="border-b border-slate-100 px-5 py-3">
+            <p className="text-xs font-semibold uppercase tracking-label text-slate-500">
+              Actions rapides
+            </p>
+          </div>
+          <div className="grid grid-cols-2 gap-px bg-slate-100 sm:grid-cols-3 lg:grid-cols-6">
+            {[
+              { label: "Créer une organisation", href: "/admin/organizations", icon: "🏢" },
+              { label: "Inviter un agent", href: "/admin/employees/invite", icon: "👤" },
+              { label: "Créer un document", href: "/admin/documents/new", icon: "📄" },
+              { label: "Planifier une réunion", href: "/admin/meetings/new", icon: "📅" },
+              { label: "Démarrer un workflow", href: "/admin/workflows/new", icon: "⚡" },
+              { label: "Données de démo", href: "/admin/demo-data", icon: "🧪" },
+            ].map((action) => (
+              <Link
+                key={action.href}
+                href={action.href}
+                className="flex flex-col items-center gap-2 bg-white px-4 py-5 text-center hover:bg-slate-50 transition-colors"
+              >
+                <span className="text-2xl">{action.icon}</span>
+                <span className="text-xs font-medium text-slate-600 leading-tight">{action.label}</span>
+              </Link>
+            ))}
+          </div>
+        </div>
+
+        {/* Empty state CTA — shown when org count is 0 */}
+        {stats?.ministries === 0 && (
+          <div className="border-2 border-dashed border-slate-300 bg-white px-6 py-10 text-center">
+            <p className="text-3xl mb-3">🏢</p>
+            <p className="text-base font-semibold text-slate-800">Démarrez avec Prinodia Workspace</p>
+            <p className="mt-1 text-sm text-slate-500 max-w-md mx-auto">
+              Aucune structure organisationnelle n&apos;est encore configurée. Créez votre première organisation
+              ou générez des données de démonstration pour explorer la plateforme.
+            </p>
+            <div className="mt-5 flex justify-center gap-3">
+              <Link href="/admin/organizations">
+                <Button>Créer une organisation</Button>
+              </Link>
+              <Link href="/admin/demo-data">
+                <Button variant="secondary">🧪 Générer des données démo</Button>
+              </Link>
+            </div>
+          </div>
+        )}
+
         {/* Context card */}
         <div className="border border-slate-200 bg-white">
           <div className="border-b border-slate-100 px-5 py-3">
@@ -204,11 +254,9 @@ export default function DashboardPage() {
           </div>
           <div className="px-5 py-4">
             <p className="text-sm text-slate-600 leading-relaxed">
-              Prinodia Workspace est la plateforme centralisée de gestion de la structure gouvernementale de
-              la RDC. Gérez les <span className="font-semibold text-slate-800">26 provinces</span>,
-              les <span className="font-semibold text-slate-800">36 ministères</span>, leurs
-              départements, divisions, postes et le personnel gouvernemental depuis un espace de
-              travail sécurisé.
+              Prinodia Workspace est une plateforme multi-organisations pour gouvernements, entreprises,
+              universités, hôpitaux, ONG et églises. Gérez votre structure, votre personnel,
+              vos documents, workflows, réunions et communications depuis un espace de travail sécurisé.
             </p>
           </div>
         </div>

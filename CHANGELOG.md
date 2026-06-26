@@ -7,6 +7,93 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ---
 
+## [1.1.0] — 2026-06-25
+
+**Product Readiness & Demo Environment.** Multi-org demo data generator, global Cmd+K search
+palette, settings foundation, notification center polish, and first-run experience with empty states
+and quick-action links.
+
+### Added
+
+**Organization Model (v1.0.2 — now on-disk)**
+
+- `Organization` Prisma model with `OrganizationType` (8 values) and `OrganizationStatus` (4 values) enums
+- Nullable `organizationId` FK on `Ministry`, `Department`, `User` — fully backward-compatible
+- `OrganizationModule` API — 6 endpoints at `GET/POST/PATCH/DELETE /v1/organizations`
+- `DemoRegistry` Prisma model — tracks all demo entity IDs for safe cleanup
+- Migration SQL: `20260625300000_v1_0_2_organization_model`
+- Migration SQL: `20260625400000_v1_1_0_demo_registry`
+
+**Demo Environment Generator**
+
+- `DemoService` — generates realistic data for 6 org types (GOVERNMENT, ENTERPRISE, EDUCATION, HEALTHCARE, NGO, CHURCH)
+- Seed sizes: SMALL (3 emp/3 mtg/4 doc), MEDIUM (5/8/10), LARGE (10/15/20), GOVERNMENT_MINISTRY
+- 6 stable demo organizations with stable codes and `@demo.prinodia` email domain
+- Generates: departments, users, meetings, documents, tasks, notifications, audit logs
+- Fully idempotent — ON CONFLICT DO NOTHING for all records
+- Demo registry tracking for safe reset (never deletes non-demo data)
+- `DemoModule` with 3 endpoints: `GET /v1/demo/status`, `POST /v1/demo/generate`, `DELETE /v1/demo/reset`
+- Admin UI page `/admin/demo-data` with seed size selector, org type filter, status summary, reset confirm
+
+**Global Search (Cmd+K)**
+
+- `SearchModule` — `GET /v1/search?q=` searches users, documents, meetings, workflows, tasks
+- `CommandPalette` React component — opens with Cmd+K / Ctrl+K
+- Keyboard navigable (↑↓ arrows, Enter to navigate, Escape to close)
+- Results grouped by type with labels
+- Debounced 250ms, 20 results max per type
+
+**Settings Foundation**
+
+- `/admin/settings` — index with 5 section cards
+- `/admin/settings/workspace` — name, timezone, language, logo placeholder
+- `/admin/settings/profile` — personal info pre-filled from session
+- `/admin/settings/security` — password change, MFA toggle, session management links
+- `/admin/settings/notifications` — per-event in-app/email toggles
+- `/admin/settings/appearance` — theme (light/dark/system), density, language
+
+**Notification Center Polish**
+
+- Added TASK and SYSTEM filter tabs (on top of existing ALL/UNREAD/MENTIONS)
+- Entity linking: notifications with `data.meetingId`, `documentId`, `taskId`, etc. show "Voir le détail →"
+- Improved empty state with icon, contextual message per filter type
+
+**First Run Experience**
+
+- Dashboard quick action grid: 6 one-click links (Create Org, Invite Agent, Create Doc, Schedule Meeting, Start Workflow, Generate Demo)
+- Empty state CTA when no ministries found: "Create an organisation" + "Generate demo data"
+- Description updated from government-only to multi-org
+
+**Sidebar Navigation**
+
+- New "Plateforme" section: Organisations (gated by `ORGANIZATION:READ`)
+- New "Administration" section: Environnement démo, Paramètres
+- 3 new icons: GlobeAltIcon, BeakerIcon, Cog6ToothIcon
+
+**Documentation**
+
+- `docs/DEMO_ENVIRONMENT.md` — full demo system documentation
+- This `CHANGELOG.md` entry
+
+### Permissions Added
+
+- `ORGANIZATION:READ`, `ORGANIZATION:CREATE`, `ORGANIZATION:UPDATE`, `ORGANIZATION:DELETE`
+- `DEMO:READ`, `DEMO:MANAGE`
+- `SEARCH:READ`
+
+### Seed Data
+
+- 6 demo organizations seeded via `DemoService.generate()`
+- 4 ORGANIZATION:* permissions added to `seed.ts`
+
+---
+
+## [1.0.0] — 2026-06-25
+
+**Executive Office & Cabinet Management.** Full executive workspace including executive offices, cabinet sessions, decisions, briefings, correspondence, and announcements.
+
+---
+
 ## [0.6.3] — 2026-06-24
 
 **Production Hardening.** Redis infrastructure, async job queues, compound performance indexes,

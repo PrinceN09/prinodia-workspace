@@ -3,6 +3,8 @@ import { ConfigModule } from "@nestjs/config";
 import { APP_FILTER, APP_GUARD, APP_PIPE } from "@nestjs/core";
 import { ThrottlerModule, ThrottlerGuard } from "@nestjs/throttler";
 
+import { CalendarModule } from "./calendar/calendar.module";
+import { CollaborationModule } from "./collaboration/collaboration.module";
 import { GlobalExceptionFilter } from "./common/filters/global-exception.filter";
 import { JwtAuthGuard } from "./common/guards/jwt-auth.guard";
 import { PermissionsGuard } from "./common/guards/permissions.guard";
@@ -17,11 +19,9 @@ import {
   storageConfig,
   validateEnv,
 } from "./config";
-import { CalendarModule } from "./calendar/calendar.module";
-import { ExecutiveModule } from "./executive/executive.module";
-import { CollaborationModule } from "./collaboration/collaboration.module";
+import { DemoModule } from "./demo/demo.module";
 import { DocumentsModule } from "./documents/documents.module";
-import { WorkflowsModule } from "./workflows/workflows.module";
+import { ExecutiveModule } from "./executive/executive.module";
 import { GovernmentModule } from "./government/government.module";
 import { HealthModule } from "./health/health.module";
 import { IdentityModule } from "./identity/identity.module";
@@ -30,7 +30,10 @@ import { EventsModule } from "./infrastructure/events/events.module";
 import { QueueModule } from "./infrastructure/queue/queue.module";
 import { RedisModule } from "./infrastructure/redis/redis.module";
 import { StorageModule } from "./infrastructure/storage/storage.module";
+import { OrganizationModule } from "./organizations/organization.module";
 import { PrismaModule } from "./prisma/prisma.module";
+import { SearchModule } from "./search/search.module";
+import { WorkflowsModule } from "./workflows/workflows.module";
 
 @Module({
   imports: [
@@ -76,6 +79,9 @@ import { PrismaModule } from "./prisma/prisma.module";
     WorkflowsModule, // Workflow & Digital Approvals Platform (v0.8.1)
     CalendarModule, // Calendar, Meetings & Events Platform (v0.9.0)
     ExecutiveModule, // Executive Office & Cabinet Management (v1.0.0)
+    OrganizationModule, // Organizations — neutral parent model (v1.0.2)
+    DemoModule, // Demo Environment Generator (v1.1.0)
+    SearchModule, // Global Search — GET /v1/search?q= (v1.1.0)
 
     // ── Health ───────────────────────────────────────────────────────────────
     HealthModule, // GET /health, /health/live, /health/ready, /health/db
