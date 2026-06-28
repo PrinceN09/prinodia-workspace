@@ -118,6 +118,15 @@ function ClipboardDocumentListIcon() {
   );
 }
 
+function SquaresPlusIcon() {
+  return (
+    <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+      <path d="M2 4.25A2.25 2.25 0 014.25 2h6.5A2.25 2.25 0 0113 4.25v6.5A2.25 2.25 0 0110.75 13h-6.5A2.25 2.25 0 012 10.75v-6.5zM12.25 7a.75.75 0 00-.75.75v1.5h-1.5a.75.75 0 000 1.5h1.5v1.5a.75.75 0 001.5 0v-1.5h1.5a.75.75 0 000-1.5h-1.5v-1.5a.75.75 0 00-.75-.75z" />
+      <path d="M2 14.25A2.25 2.25 0 014.25 12H7.5v1.5H4.25a.75.75 0 00-.75.75v3.5c0 .414.336.75.75.75h3.5a.75.75 0 00.75-.75V15.5H10v2.25A2.25 2.25 0 017.75 20h-3.5A2.25 2.25 0 012 17.75v-3.5z" />
+    </svg>
+  );
+}
+
 function ChatBubbleIcon() {
   return (
     <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
@@ -437,6 +446,11 @@ const NAV_SECTION_COLLAB: NavItem[] = [
     href: "/admin/meet",
     label: "Meet",
     icon: <VideoCameraIcon />,
+  },
+  {
+    href: "/admin/canvas",
+    label: "Canvas",
+    icon: <SquaresPlusIcon />,
   },
   {
     href: "/admin/messages",

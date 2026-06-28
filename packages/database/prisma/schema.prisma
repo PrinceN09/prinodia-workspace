@@ -692,6 +692,18 @@ model User {
   meetInvitesCreated         MeetingInvite[]           @relation("MeetInvites")
   meetBreakoutParticipations MeetingBreakoutRoomParticipant[] @relation("BreakoutParticipant")
   meetSummariesAuthored      MeetingSummary[]          @relation("MeetSummaryAuthor")
+  // Canvas v1.6.0
+  canvasBoardsOwned          CanvasBoard[]             @relation("CanvasBoardOwner")
+  canvasParticipations       CanvasParticipant[]       @relation("CanvasParticipations")
+  canvasElementsCreated      CanvasElement[]           @relation("CanvasElementCreator")
+  canvasVersionsEdited       CanvasElementVersion[]    @relation("CanvasVersionEditor")
+  canvasSessionsStarted      CanvasSession[]           @relation("CanvasSessionStarter")
+  canvasCommentsAuthored     CanvasComment[]           @relation("CanvasCommentAuthor")
+  canvasTemplatesCreated     CanvasTemplate[]          @relation("CanvasTemplateCreator")
+  canvasExportsRequested     CanvasExport[]            @relation("CanvasExportRequester")
+  canvasSharesCreated        CanvasShare[]             @relation("CanvasShareCreator")
+  canvasPresences            CanvasPresence[]          @relation("CanvasPresences")
+  canvasActivities           CanvasActivity[]          @relation("CanvasActivities")
   createdAt                  DateTime                  @default(now())
   updatedAt                  DateTime                  @updatedAt
   deletedAt                  DateTime?
@@ -2180,7 +2192,7 @@ model Meeting {
   updatedAt    DateTime  @updatedAt
 
   // v1.5.0 — Prinodia Meet live session fields
-  channelId          String?              // linked Chat channel for meeting chat
+  channelId          String?              @unique // linked Chat channel for meeting chat
   channel            Channel?             @relation("MeetingChannel", fields: [channelId], references: [id])
   joinToken          String?              @unique @db.VarChar(128)
   isLocked           Boolean              @default(false)
@@ -3321,3 +3333,425 @@ model EmployeeSkill {
   @@index([skillId, level])
   @@map("employee_skills")
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Prinodia Canvas v1.6.0
+// Live collaborative workspace: whiteboards, diagrams, meeting boards,
+// code collaboration, project visualization. Integrates with Meet, Chat,
+// People, Documents, Workflow, Search, Realtime.
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// ─── Canvas enums ─────────────────────────────────────────────────────────────
+
+enum CanvasBoardType {
+  WHITEBOARD
+  MEETING_BOARD
+  PROJECT_BOARD
+  DOCUMENT_BOARD
+  WORKFLOW_BOARD
+  CODE_BOARD
+  DIAGRAM_BOARD
+  BRAINSTORM_BOARD
+}
+
+enum CanvasBoardStatus {
+  ACTIVE
+  ARCHIVED
+  DELETED
+}
+
+enum CanvasParticipantRole {
+  OWNER
+  EDITOR
+  PRESENTER
+  VIEWER
+}
+
+enum CanvasElementType {
+  PENCIL_STROKE
+  HIGHLIGHTER_STROKE
+  TEXT
+  STICKY_NOTE
+  SHAPE
+  CONNECTOR
+  ARROW
+  IMAGE
+  PDF
+  DOCUMENT_LINK
+  CODE_BLOCK
+  TABLE
+  MIND_MAP_NODE
+  FLOWCHART_NODE
+  COMMENT_PIN
+  LASER_POINTER
+  SCREEN_ANNOTATION
+}
+
+enum CanvasExportFormat {
+  PNG
+  PDF
+  SVG
+  JSON
+}
+
+enum CanvasExportStatus {
+  PENDING
+  PROCESSING
+  READY
+  FAILED
+}
+
+enum CanvasShareAccess {
+  VIEW
+  EDIT
+}
+
+// ─── CanvasBoard ──────────────────────────────────────────────────────────────
+// The root collaborative workspace entity. One board = one infinite canvas.
+
+model CanvasBoard {
+  id             String            @id @default(cuid())
+  organizationId String
+  ownerId        String
+  title          String            @db.VarChar(200)
+  description    String?           @db.Text
+  boardType      CanvasBoardType   @default(WHITEBOARD)
+  status         CanvasBoardStatus @default(ACTIVE)
+
+  // Integrations (all optional)
+  meetingId      String?           // linked Meeting (v0.9.0+)
+  channelId      String?           // linked Chat channel (v1.4.0+)
+  documentId     String?           // linked Document (v0.8.0+)
+  workflowId     String?           // linked Workflow instance (v0.8.1+)
+  templateId     String?           // created from CanvasTemplate
+
+  // Canvas state
+  thumbnailUrl   String?           @db.VarChar(500)
+  viewportState  Json              @default("{}") // { x, y, zoom }
+  background     String            @default("#FFFFFF") @db.VarChar(7)
+  isPublic       Boolean           @default(false)
+  isLocked       Boolean           @default(false)
+  elementCount   Int               @default(0)
+  lastActivityAt DateTime          @default(now())
+
+  // AI extension point (v2.0.0)
+  aiEnabled      Boolean           @default(false)
+  aiContext      Json?
+
+  // Drive extension point (v2.0.0)
+  driveFileId    String?           @db.VarChar(200)
+
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  deletedAt      DateTime?
+
+  owner          User              @relation("CanvasBoardOwner", fields: [ownerId], references: [id])
+
+  elements       CanvasElement[]
+  participants   CanvasParticipant[]
+  sessions       CanvasSession[]
+  comments       CanvasComment[]
+  exports        CanvasExport[]
+  shares         CanvasShare[]
+  presences      CanvasPresence[]
+  activities     CanvasActivity[]
+
+  @@index([organizationId])
+  @@index([ownerId])
+  @@index([boardType])
+  @@index([status])
+  @@index([meetingId])
+  @@index([channelId])
+  @@index([lastActivityAt])
+  @@map("canvas_boards")
+}
+
+// ─── CanvasParticipant ────────────────────────────────────────────────────────
+
+model CanvasParticipant {
+  id        String                @id @default(cuid())
+  boardId   String
+  userId    String
+  role      CanvasParticipantRole @default(VIEWER)
+  invitedBy String?
+  joinedAt  DateTime              @default(now())
+  lastSeenAt DateTime?
+  isActive  Boolean               @default(true)
+
+  board     CanvasBoard           @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  user      User                  @relation("CanvasParticipations", fields: [userId], references: [id])
+
+  @@unique([boardId, userId])
+  @@index([userId])
+  @@index([role])
+  @@map("canvas_participants")
+}
+
+// ─── CanvasElement ────────────────────────────────────────────────────────────
+// Every drawable object on the canvas.
+
+model CanvasElement {
+  id           String           @id @default(cuid())
+  boardId      String
+  createdBy    String
+  elementType  CanvasElementType
+  layerIndex   Int              @default(0)
+  isLocked     Boolean          @default(false)
+  isVisible    Boolean          @default(true)
+  isDeleted    Boolean          @default(false)
+
+  // Position & size (canvas coordinate space)
+  x            Float            @default(0)
+  y            Float            @default(0)
+  width        Float?
+  height       Float?
+  rotation     Float            @default(0)
+
+  // Type-specific data (flexible JSON payload)
+  // TEXT: { text, fontSize, fontFamily, color, align, bold, italic }
+  // STICKY_NOTE: { text, color, fontSize }
+  // SHAPE: { shapeType:"rect|circle|triangle|diamond", fill, stroke, strokeWidth }
+  // CONNECTOR/ARROW: { points:[{x,y}], startId, endId, arrowHead }
+  // PENCIL_STROKE/HIGHLIGHTER_STROKE: { points:[{x,y,pressure}], color, width, opacity }
+  // CODE_BLOCK: { language, content, readOnly, lineNumbers, theme }
+  // IMAGE: { url, originalFilename, mimeType }
+  // DOCUMENT_LINK: { documentId, title }
+  // COMMENT_PIN: { commentId }
+  // TABLE: { rows, cols, cells:[[]] }
+  // MIND_MAP_NODE/FLOWCHART_NODE: { label, parentId, children:[] }
+  data         Json             @default("{}")
+
+  // Style overrides (merged with type defaults)
+  style        Json             @default("{}")
+
+  // Locking for concurrent editing
+  lockedBy     String?
+  lockedAt     DateTime?
+
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  board        CanvasBoard      @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  creator      User             @relation("CanvasElementCreator", fields: [createdBy], references: [id])
+  versions     CanvasElementVersion[]
+  comments     CanvasComment[]
+
+  @@index([boardId])
+  @@index([boardId, isDeleted])
+  @@index([boardId, layerIndex])
+  @@index([elementType])
+  @@index([createdBy])
+  @@map("canvas_elements")
+}
+
+// ─── CanvasElementVersion ─────────────────────────────────────────────────────
+// Immutable snapshot of an element at each update — enables undo/redo history.
+
+model CanvasElementVersion {
+  id          String        @id @default(cuid())
+  elementId   String
+  editorId    String
+  versionNum  Int
+  data        Json          // full element snapshot at this point
+  style       Json
+  x           Float
+  y           Float
+  width       Float?
+  height      Float?
+  rotation    Float
+  createdAt   DateTime      @default(now())
+
+  element     CanvasElement @relation(fields: [elementId], references: [id], onDelete: Cascade)
+  editor      User          @relation("CanvasVersionEditor", fields: [editorId], references: [id])
+
+  @@index([elementId])
+  @@index([elementId, versionNum])
+  @@map("canvas_element_versions")
+}
+
+// ─── CanvasSession ────────────────────────────────────────────────────────────
+// Tracks a collaborative editing session (from first join to all leave).
+
+model CanvasSession {
+  id               String      @id @default(cuid())
+  boardId          String
+  startedById      String
+  startedAt        DateTime    @default(now())
+  endedAt          DateTime?
+  durationSeconds  Int?
+  participantCount Int         @default(1)
+  peakParticipants Int         @default(1)
+  operationCount   Int         @default(0) // total element operations
+
+  board            CanvasBoard @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  startedBy        User        @relation("CanvasSessionStarter", fields: [startedById], references: [id])
+
+  @@index([boardId])
+  @@index([boardId, endedAt])
+  @@map("canvas_sessions")
+}
+
+// ─── CanvasComment ────────────────────────────────────────────────────────────
+// Threaded comments anchored to a board or a specific element.
+
+model CanvasComment {
+  id         String        @id @default(cuid())
+  boardId    String
+  elementId  String?       // null = board-level comment
+  authorId   String
+  parentId   String?       // null = root comment; non-null = reply
+  content    String        @db.Text
+  posX       Float?        // canvas position for pin-type comments
+  posY       Float?
+  isResolved Boolean       @default(false)
+  resolvedBy String?
+  resolvedAt DateTime?
+  isDeleted  Boolean       @default(false)
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  board      CanvasBoard   @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  element    CanvasElement? @relation(fields: [elementId], references: [id])
+  author     User          @relation("CanvasCommentAuthor", fields: [authorId], references: [id])
+  parent     CanvasComment? @relation("CanvasCommentReplies", fields: [parentId], references: [id])
+  replies    CanvasComment[] @relation("CanvasCommentReplies")
+
+  @@index([boardId])
+  @@index([elementId])
+  @@index([authorId])
+  @@index([boardId, isResolved])
+  @@map("canvas_comments")
+}
+
+// ─── CanvasTemplate ───────────────────────────────────────────────────────────
+// Reusable board templates (system-provided or user-created).
+
+model CanvasTemplate {
+  id             String          @id @default(cuid())
+  organizationId String?         // null = global system template
+  createdBy      String?
+  name           String          @db.VarChar(200)
+  description    String?         @db.Text
+  boardType      CanvasBoardType @default(WHITEBOARD)
+  thumbnailUrl   String?         @db.VarChar(500)
+  isPublic       Boolean         @default(false)
+  isSystem       Boolean         @default(false) // shipped with platform
+  category       String?         @db.VarChar(100)
+  tags           String[]        @default([])
+  // Snapshot of elements to clone when creating from this template
+  elementsSnapshot Json          @default("[]")
+  useCount       Int             @default(0)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  creator        User?           @relation("CanvasTemplateCreator", fields: [createdBy], references: [id])
+
+  @@index([organizationId])
+  @@index([boardType])
+  @@index([isPublic, isSystem])
+  @@map("canvas_templates")
+}
+
+// ─── CanvasExport ─────────────────────────────────────────────────────────────
+
+model CanvasExport {
+  id             String             @id @default(cuid())
+  boardId        String
+  requestedById  String
+  format         CanvasExportFormat
+  status         CanvasExportStatus @default(PENDING)
+  downloadUrl    String?            @db.VarChar(500)
+  fileSizeBytes  Int?
+  pageRange      String?            @db.VarChar(50) // e.g. "1-5" for PDF
+  options        Json               @default("{}") // { scale, quality, includeBackground }
+  errorMessage   String?            @db.Text
+  expiresAt      DateTime?
+  processedAt    DateTime?
+  createdAt      DateTime           @default(now())
+
+  board          CanvasBoard        @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  requestedBy    User               @relation("CanvasExportRequester", fields: [requestedById], references: [id])
+
+  @@index([boardId])
+  @@index([requestedById])
+  @@index([status])
+  @@map("canvas_exports")
+}
+
+// ─── CanvasShare ──────────────────────────────────────────────────────────────
+// Share links for external access (with optional expiry and password).
+
+model CanvasShare {
+  id          String           @id @default(cuid())
+  boardId     String
+  createdById String
+  shareToken  String           @unique @db.VarChar(64)
+  access      CanvasShareAccess @default(VIEW)
+  label       String?          @db.VarChar(100)
+  password    String?          @db.VarChar(200) // bcrypt hash
+  maxUses     Int?
+  uses        Int              @default(0)
+  expiresAt   DateTime?
+  revokedAt   DateTime?
+  createdAt   DateTime         @default(now())
+
+  board       CanvasBoard      @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  createdBy   User             @relation("CanvasShareCreator", fields: [createdById], references: [id])
+
+  @@index([boardId])
+  @@index([shareToken])
+  @@map("canvas_shares")
+}
+
+// ─── CanvasPresence ───────────────────────────────────────────────────────────
+// Live cursor / presence state per user per board (Redis-backed in production;
+// Postgres fallback for persistence & debug).
+
+model CanvasPresence {
+  id          String      @id @default(cuid())
+  boardId     String
+  userId      String
+  socketId    String      @db.VarChar(100)
+  cursorX     Float?
+  cursorY     Float?
+  viewportX   Float?
+  viewportY   Float?
+  zoom        Float       @default(1)
+  isFollowing String?     // userId being followed (presenter mode)
+  color       String      @db.VarChar(7) // assigned cursor color
+  lastSeenAt  DateTime    @default(now())
+
+  board       CanvasBoard @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  user        User        @relation("CanvasPresences", fields: [userId], references: [id])
+
+  @@unique([boardId, userId])
+  @@index([boardId])
+  @@index([lastSeenAt])
+  @@map("canvas_presences")
+}
+
+// ─── CanvasActivity ───────────────────────────────────────────────────────────
+// Board-scoped activity feed (who did what, when).
+
+model CanvasActivity {
+  id          String      @id @default(cuid())
+  boardId     String
+  actorId     String
+  eventType   String      @db.VarChar(80) // e.g. "element.created", "comment.added"
+  elementId   String?
+  summary     String      @db.VarChar(300)
+  metadata    Json        @default("{}")
+  occurredAt  DateTime    @default(now())
+
+  board       CanvasBoard @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  actor       User        @relation("CanvasActivities", fields: [actorId], references: [id])
+
+  @@index([boardId])
+  @@index([boardId, occurredAt])
+  @@index([actorId])
+  @@map("canvas_activities")
+}
+
+// ─── User back-relations for Canvas (v1.6.0) ─────────────────────────────────
+// NOTE: The relation fields below are added to the User model via the back-relation
+// declarations above. Prisma auto-generates them; no ALTER TABLE needed on users.

@@ -258,6 +258,102 @@ export interface NotificationCreatedPayload extends BaseEventPayload {
   body: string;
 }
 
+// ─── Canvas (v1.6.0) ──────────────────────────────────────────────────────────
+
+export interface CanvasBoardPayload extends BaseEventPayload {
+  boardId: string;
+  actorId: string;
+  actorName: string;
+}
+
+export interface CanvasElementPayload extends BaseEventPayload {
+  boardId: string;
+  elementId: string;
+  actorId: string;
+  actorName: string;
+  elementType?: string;
+  x?: number;
+  y?: number;
+  width?: number;
+  height?: number;
+  rotation?: number;
+  data?: Record<string, unknown>;
+  style?: Record<string, unknown>;
+  layerIndex?: number;
+}
+
+export interface CanvasLockPayload extends BaseEventPayload {
+  boardId: string;
+  elementId: string;
+  lockedBy: string;
+  lockedByName: string;
+}
+
+export interface CanvasCommentPayload extends BaseEventPayload {
+  boardId: string;
+  commentId: string;
+  elementId?: string;
+  authorId: string;
+  authorName: string;
+  content: string;
+  posX?: number;
+  posY?: number;
+}
+
+export interface CanvasCursorPayload extends BaseEventPayload {
+  boardId: string;
+  userId: string;
+  userName: string;
+  color: string;
+  x: number;
+  y: number;
+}
+
+export interface CanvasViewportPayload extends BaseEventPayload {
+  boardId: string;
+  userId: string;
+  viewportX: number;
+  viewportY: number;
+  zoom: number;
+}
+
+export interface CanvasSelectionPayload extends BaseEventPayload {
+  boardId: string;
+  userId: string;
+  selectedElementIds: string[];
+}
+
+export interface CanvasLaserPayload extends BaseEventPayload {
+  boardId: string;
+  userId: string;
+  userName: string;
+  color: string;
+  x?: number;
+  y?: number;
+  points?: Array<{ x: number; y: number }>;
+}
+
+export interface CanvasPresenterFollowPayload extends BaseEventPayload {
+  boardId: string;
+  presenterId: string;
+  followerId: string;
+  following: boolean;
+}
+
+export interface CanvasSyncRequestPayload extends BaseEventPayload {
+  boardId: string;
+  requesterId: string;
+  sessionId: string;
+}
+
+export interface CanvasSyncResponsePayload extends BaseEventPayload {
+  boardId: string;
+  requesterId: string;
+  sessionId: string;
+  elementCount: number;
+  snapshotUrl?: string;
+}
+
 // ─── Activity ─────────────────────────────────────────────────────────────────
 
 export interface ActivityEventPayload extends BaseEventPayload {
@@ -308,6 +404,24 @@ export type EventPayloadMap = {
   "meet.poll.voted": MeetPollVotedPayload;
   "meet.breakout.created": MeetBreakoutPayload;
   "meet.breakout.closed": MeetBreakoutPayload;
+  "canvas.opened": CanvasBoardPayload;
+  "canvas.updated": CanvasBoardPayload;
+  "canvas.closed": CanvasBoardPayload;
+  "canvas.element.created": CanvasElementPayload;
+  "canvas.element.updated": CanvasElementPayload;
+  "canvas.element.deleted": CanvasElementPayload;
+  "canvas.element.locked": CanvasLockPayload;
+  "canvas.element.unlocked": CanvasLockPayload;
+  "canvas.comment.created": CanvasCommentPayload;
+  "canvas.cursor.moved": CanvasCursorPayload;
+  "canvas.selection.changed": CanvasSelectionPayload;
+  "canvas.viewport.changed": CanvasViewportPayload;
+  "canvas.laser.start": CanvasLaserPayload;
+  "canvas.laser.move": CanvasLaserPayload;
+  "canvas.laser.stop": CanvasLaserPayload;
+  "canvas.presenter.follow": CanvasPresenterFollowPayload;
+  "canvas.sync.request": CanvasSyncRequestPayload;
+  "canvas.sync.response": CanvasSyncResponsePayload;
   "document.created": DocumentCreatedPayload;
   "document.updated": DocumentUpdatedPayload;
   "workflow.submitted": WorkflowSubmittedPayload;

@@ -87,6 +87,54 @@ interface Recording {
 
 type ViewMode = "hub" | "lobby" | "live" | "ended";
 
+// ─── Canvas integration (v1.6.0) ─────────────────────────────────────────────
+
+function CanvasLaunchButton({
+  meetingId,
+  meetingTitle,
+}: {
+  meetingId: string;
+  meetingTitle: string;
+}) {
+  const [loading, setLoading] = useState(false);
+  const router = useRouter();
+
+  async function openCanvas() {
+    setLoading(true);
+    try {
+      const board = await apiPost<{ id: string }>(`/v1/canvas/from-meeting/${meetingId}`, {
+        title: `Canvas — ${meetingTitle}`,
+        boardType: "MEETING_BOARD",
+      });
+      // Open in new tab so the meeting stays active
+      window.open(`/admin/canvas/${board.id}`, "_blank");
+    } catch {
+      // silent fail
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <button
+      onClick={openCanvas}
+      disabled={loading}
+      className="w-full flex items-center gap-2 px-3 py-2 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 hover:text-indigo-200 border border-indigo-500/30 rounded-lg text-xs font-medium transition-all disabled:opacity-50"
+    >
+      <svg className="w-4 h-4 shrink-0" viewBox="0 0 20 20" fill="currentColor">
+        <path d="M2 4.25A2.25 2.25 0 014.25 2h6.5A2.25 2.25 0 0113 4.25v6.5A2.25 2.25 0 0110.75 13h-6.5A2.25 2.25 0 012 10.75v-6.5zM12.25 7a.75.75 0 00-.75.75v1.5h-1.5a.75.75 0 000 1.5h1.5v1.5a.75.75 0 001.5 0v-1.5h1.5a.75.75 0 000-1.5h-1.5v-1.5a.75.75 0 00-.75-.75z" />
+      </svg>
+      {loading ? "Ouverture..." : "Ouvrir le Canvas collaboratif"}
+      {!loading && (
+        <svg className="ml-auto w-3 h-3 opacity-50" viewBox="0 0 20 20" fill="currentColor">
+          <path fillRule="evenodd" d="M4.25 5.5a.75.75 0 00-.75.75v8.5c0 .414.336.75.75.75h8.5a.75.75 0 00.75-.75v-4a.75.75 0 011.5 0v4A2.25 2.25 0 0112.75 17h-8.5A2.25 2.25 0 012 14.75v-8.5A2.25 2.25 0 014.25 4h5a.75.75 0 010 1.5h-5z" clipRule="evenodd" />
+          <path fillRule="evenodd" d="M6.194 12.753a.75.75 0 001.06.053L16.5 4.44v2.81a.75.75 0 001.5 0v-4.5a.75.75 0 00-.75-.75h-4.5a.75.75 0 000 1.5h2.553l-9.056 8.194a.75.75 0 00-.053 1.06z" clipRule="evenodd" />
+        </svg>
+      )}
+    </button>
+  );
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function fmtDate(iso: string) {
@@ -719,25 +767,9 @@ function LiveMeetingView({
               </div>
             )}
 
-            {/* Canvas placeholder — Phase 7 hook point */}
+            {/* Canvas integration — v1.6.0 */}
             <div className="p-3 border-t border-gray-800">
-              <button
-                disabled
-                className="w-full flex items-center gap-2 px-3 py-2 bg-gray-800 text-gray-500 rounded-lg text-xs cursor-not-allowed"
-                title="Disponible dans une prochaine version"
-              >
-                <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
-                  <path
-                    fillRule="evenodd"
-                    d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm3 2h6v4H7V5zm8 8v2H5v-2h10zm-8-2v-2H5v2h2zm4 0v-2h2v2h-2zm4 0v-2h2v2h-2z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-                Ouvrir le Canvas collaboratif
-                <span className="ml-auto text-[10px] bg-indigo-900 text-indigo-400 px-1.5 rounded">
-                  Bientôt
-                </span>
-              </button>
+              <CanvasLaunchButton meetingId={meeting.id} meetingTitle={meeting.title} />
             </div>
           </div>
         )}

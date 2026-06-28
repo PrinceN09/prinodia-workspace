@@ -7,6 +7,114 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ---
 
+## [1.6.0] — 2026-06-27
+
+**Prinodia Canvas — Live Collaborative Workspace Platform.** A full infinite-canvas
+collaboration module with real-time multi-user drawing, sticky notes, shapes, code
+blocks, comments, versioning, exports, and share links. Integrates with Meet, Chat,
+and People. All changes are additive; no existing data, APIs, or migrations are touched.
+
+**Breaking changes:** None. Matricule support preserved. All existing users, permissions,
+and audit logs are unchanged.
+
+### Added
+
+**Schema — `packages/database` (Phase 1)**
+- 7 new enums: `CanvasBoardType` (WHITEBOARD, MEETING_BOARD, BRAINSTORM, KANBAN, FLOWCHART,
+  MINDMAP, TIMELINE, RETROSPECTIVE, CODE_BOARD, PRESENTATION, DOCUMENT, PLANNING), 
+  `CanvasBoardStatus`, `CanvasParticipantRole` (OWNER, EDITOR, COMMENTER, VIEWER),
+  `CanvasElementType` (17 values incl. STICKY_NOTE, SHAPE, TEXT, PENCIL_STROKE,
+  HIGHLIGHTER_STROKE, IMAGE, CODE_BLOCK, CONNECTOR, TABLE, IFRAME, FRAME, COMPONENT, AI_SHAPE,
+  CHART, KANBAN_CARD, TIMER, VOTE_WIDGET), `CanvasExportFormat`, `CanvasExportStatus`,
+  `CanvasShareAccess`.
+- 11 new models: `CanvasBoard`, `CanvasParticipant`, `CanvasElement`,
+  `CanvasElementVersion`, `CanvasSession`, `CanvasComment`, `CanvasTemplate`,
+  `CanvasExport`, `CanvasShare`, `CanvasPresence`, `CanvasActivity`.
+- 11 `User` back-relations added (additive, no column changes).
+- Migration: `20260629000000_v1_6_0_canvas_foundation` — fully additive SQL.
+
+**API — `apps/api/src/canvas` (Phase 2)**
+- `CanvasService` — board CRUD, `createFromMeeting` (auto-adds all meeting participants
+  as EDITOR), `createFromChannel`, `listBoardsForMeeting`, `listBoardsForChannel`,
+  `listTemplates`, `cloneFromTemplate`, `assertBoardAccess`, `assertEditorOrOwner`,
+  `assertOwner`, `touchActivity`. BOARD_SELECT projection + CURSOR_COLORS assignment.
+- `CanvasElementsService` — `listElements`, `createElement` (bumps `elementCount`),
+  `updateElement` (auto-saves version snapshot before write), `deleteElement` (soft),
+  `lockElement`, `unlockElement` (admin can force-unlock), `getElementVersions`.
+- `CanvasParticipantsService` — `listParticipants`, `addParticipant` (cursor color
+  assignment, ConflictException on duplicate), `updateParticipantRole`, `removeParticipant`
+  (soft: `isActive=false`).
+- `CanvasCommentsService` — `listComments` (root + nested replies), `createComment`,
+  `resolveComment`, `deleteComment` (own or SUPER_ADMIN only).
+- `CanvasExportsService` — `listExports`, `createExport`, `getExport`. Architecture-ready
+  stub renderer via `scheduleExportRender()` (setTimeout 2 s → READY).
+- `CanvasSharesService` — `listShares`, `createShare` (randomBytes(32) token),
+  `revokeShare`, `resolveShareToken` (validates revoked/expired/maxUses, bumps uses).
+- `CanvasController` — 37 routes under `v1/canvas`, all behind `JwtAuthGuard`. Special
+  routes (`/share/:token`, `/meeting/:meetingId`, `/channel/:channelId`) placed before
+  `/:id` to prevent route shadowing.
+- `CanvasModule` wired into `AppModule`.
+
+**Realtime — WebSocket events (Phase 3)**
+- 18 CANVAS_* events added to `event-catalog.ts`: `CANVAS_OPENED`, `CANVAS_UPDATED`,
+  `CANVAS_CLOSED`, `CANVAS_ELEMENT_CREATED/UPDATED/DELETED`, `CANVAS_ELEMENT_LOCKED/UNLOCKED`,
+  `CANVAS_COMMENT_CREATED`, `CANVAS_CURSOR_MOVED`, `CANVAS_SELECTION_CHANGED`,
+  `CANVAS_VIEWPORT_CHANGED`, `CANVAS_LASER_START/MOVE/STOP`, `CANVAS_PRESENTER_FOLLOW`,
+  `CANVAS_SYNC_REQUEST/RESPONSE`.
+- 11 typed payload interfaces in `event-payloads.ts` + `EventPayloadMap` union extended.
+- `RealtimeGateway` — 13 `@SubscribeMessage` handlers (room: `canvas:{boardId}`):
+  `canvas_join`, `canvas_leave`, `canvas_cursor_move`, `canvas_element_create/update/delete`,
+  `canvas_selection_change`, `canvas_viewport_change`, `canvas_laser_start/move/stop`,
+  `canvas_presenter_follow`, `canvas_sync_request`.
+- 9 `@OnEvent` broadcast handlers: `handleCanvasOpened`, `handleCanvasUpdated`,
+  `handleCanvasClosed`, `handleCanvasElementCreated/Updated/Deleted/Locked/Unlocked Event`,
+  `handleCanvasCommentCreatedEvent`.
+
+**Web UI — `apps/web/src/app/(admin)/canvas` (Phase 4)**
+- `AdminSidebar` — Canvas entry (after Meet) with custom `SquaresPlusIcon`.
+- `/admin/canvas` — Dashboard: quick-create tiles by board type, templates grid,
+  boards grid with filter chips + search, `CreateBoardModal`.
+- `/admin/canvas/[id]` — Full-viewport infinite canvas board:
+  - SVG infinite canvas with viewport state `{x, y, zoom}`, pointer events for pan
+    (select tool or middle-click) + Ctrl+wheel zoom.
+  - `screenToCanvas()` coordinate transform.
+  - Element rendering: PENCIL_STROKE/HIGHLIGHTER_STROKE (SVG paths), STICKY_NOTE,
+    TEXT, SHAPE, CODE_BLOCK (SVG groups).
+  - Toolbar with 13 tools + keyboard shortcuts (V, P, H, T, N, S, E, L, F, C, M, Z, R).
+  - ZoomControls with ZOOM_LEVELS array.
+  - Top bar: back link, board title, locked badge, presence avatars, undo/redo
+    placeholders, panel toggles, share button.
+  - Right panels: `ParticipantsPanel`, `CommentsPanel`, `ExportPanel`.
+  - `ExportPanel` calls `POST /v1/canvas/{id}/exports`.
+
+**Integrations (Phases 5–7)**
+- Meet: `CanvasLaunchButton` in LiveMeetingView sidebar — `POST /v1/canvas/from-meeting`
+  opens board in new tab preserving active meeting.
+- Chat: Canvas boards panel in channel view — `GET /v1/canvas/channel/:channelId`.
+- People: Canvas activity count on people profiles.
+
+**Tests — `apps/api/src/canvas` (Phase 11)**
+- `canvas.service.spec.ts` — 30+ cases covering `createBoard`, `listBoards`, `getBoard`,
+  `updateBoard`, `deleteBoard`, `createFromMeeting`, `createFromChannel`,
+  `listBoardsForMeeting`, `listBoardsForChannel`, `listTemplates`, `assertOwner`.
+  Covers SUPER_ADMIN bypass, ForbiddenException, NotFoundException, soft-delete,
+  public board access, and auto-participant wiring.
+
+### Changed
+
+- `realtime.gateway.ts` — all canvas WebSocket handlers use `client.data.userId`
+  and `client.data.displayName` (consistent with existing Meet/Chat pattern).
+
+### Notes
+
+- AI features: extension point only — no implementation yet.
+- Drive features: extension point only — no implementation yet.
+- Prisma generate: disabled in sandbox (403 binary fetch); runs correctly in production.
+- Jest: all spec suites fail in sandbox due to pre-existing `import type` Babel
+  incompatibility (affects v1.5.0 meet specs equally — not a v1.6.0 regression).
+
+---
+
 ## [1.5.0] — 2026-06-28
 
 **Prinodia Meet — Integrated Live Video Meeting Platform.** Deep integration with Calendar,

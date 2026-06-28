@@ -504,4 +504,259 @@ export class RealtimeGateway implements OnGatewayInit, OnGatewayConnection, OnGa
   ): void {
     this.server.to(`meet:${payload.meetingId}`).emit("meet_breakout_closed", payload);
   }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // Canvas v1.6.0 — WebSocket handlers
+  // Rooms keyed as `canvas:{boardId}`
+  // ══════════════════════════════════════════════════════════════════════════
+
+  // ── Subscribe handlers (client → server) ─────────────────────────────────
+
+  @UseGuards(WsAuthGuard)
+  @SubscribeMessage("canvas_join")
+  async handleCanvasJoin(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() payload: { boardId: string },
+  ): Promise<void> {
+    const room = `canvas:${payload.boardId}`;
+    await client.join(room);
+    client.to(room).emit("canvas_participant_joined", {
+      boardId: payload.boardId,
+      userId: client.data.userId,
+      userName: client.data.displayName,
+      joinedAt: new Date().toISOString(),
+    });
+  }
+
+  @UseGuards(WsAuthGuard)
+  @SubscribeMessage("canvas_leave")
+  async handleCanvasLeave(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() payload: { boardId: string },
+  ): Promise<void> {
+    const room = `canvas:${payload.boardId}`;
+    await client.leave(room);
+    client.to(room).emit("canvas_participant_left", {
+      boardId: payload.boardId,
+      userId: client.data.userId,
+      leftAt: new Date().toISOString(),
+    });
+  }
+
+  /** Live cursor position — high-frequency, broadcast to room (not sender) */
+  @UseGuards(WsAuthGuard)
+  @SubscribeMessage("canvas_cursor_move")
+  handleCanvasCursorMove(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() payload: { boardId: string; x: number; y: number; color?: string },
+  ): void {
+    client.to(`canvas:${payload.boardId}`).emit("canvas_cursor_moved", {
+      boardId: payload.boardId,
+      userId: client.data.userId,
+      userName: client.data.displayName,
+      color: payload.color ?? "#6366F1",
+      x: payload.x,
+      y: payload.y,
+    });
+  }
+
+  @UseGuards(WsAuthGuard)
+  @SubscribeMessage("canvas_element_create")
+  handleCanvasElementCreate(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() payload: { boardId: string; element: Record<string, unknown> },
+  ): void {
+    client.to(`canvas:${payload.boardId}`).emit("canvas_element_created", {
+      boardId: payload.boardId,
+      actorId: client.data.userId,
+      actorName: client.data.displayName,
+      ...payload.element,
+    });
+  }
+
+  @UseGuards(WsAuthGuard)
+  @SubscribeMessage("canvas_element_update")
+  handleCanvasElementUpdate(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() payload: { boardId: string; elementId: string; changes: Record<string, unknown> },
+  ): void {
+    client.to(`canvas:${payload.boardId}`).emit("canvas_element_updated", {
+      boardId: payload.boardId,
+      elementId: payload.elementId,
+      actorId: client.data.userId,
+      actorName: client.data.displayName,
+      ...payload.changes,
+    });
+  }
+
+  @UseGuards(WsAuthGuard)
+  @SubscribeMessage("canvas_element_delete")
+  handleCanvasElementDelete(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() payload: { boardId: string; elementId: string },
+  ): void {
+    client.to(`canvas:${payload.boardId}`).emit("canvas_element_deleted", {
+      boardId: payload.boardId,
+      elementId: payload.elementId,
+      actorId: client.data.userId,
+    });
+  }
+
+  @UseGuards(WsAuthGuard)
+  @SubscribeMessage("canvas_selection_change")
+  handleCanvasSelectionChange(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() payload: { boardId: string; selectedElementIds: string[] },
+  ): void {
+    client.to(`canvas:${payload.boardId}`).emit("canvas_selection_changed", {
+      boardId: payload.boardId,
+      userId: client.data.userId,
+      selectedElementIds: payload.selectedElementIds,
+    });
+  }
+
+  @UseGuards(WsAuthGuard)
+  @SubscribeMessage("canvas_viewport_change")
+  handleCanvasViewportChange(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() payload: { boardId: string; viewportX: number; viewportY: number; zoom: number },
+  ): void {
+    client.to(`canvas:${payload.boardId}`).emit("canvas_viewport_changed", {
+      userId: client.data.userId,
+      ...payload,
+    });
+  }
+
+  @UseGuards(WsAuthGuard)
+  @SubscribeMessage("canvas_laser_start")
+  handleCanvasLaserStart(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() payload: { boardId: string; x: number; y: number; color?: string },
+  ): void {
+    client.to(`canvas:${payload.boardId}`).emit("canvas_laser_started", {
+      boardId: payload.boardId,
+      userId: client.data.userId,
+      userName: client.data.displayName,
+      color: payload.color ?? "#EF4444",
+      x: payload.x,
+      y: payload.y,
+    });
+  }
+
+  @UseGuards(WsAuthGuard)
+  @SubscribeMessage("canvas_laser_move")
+  handleCanvasLaserMove(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() payload: { boardId: string; points: Array<{ x: number; y: number }> },
+  ): void {
+    client.to(`canvas:${payload.boardId}`).emit("canvas_laser_moved", {
+      boardId: payload.boardId,
+      userId: client.data.userId,
+      points: payload.points,
+    });
+  }
+
+  @UseGuards(WsAuthGuard)
+  @SubscribeMessage("canvas_laser_stop")
+  handleCanvasLaserStop(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() payload: { boardId: string },
+  ): void {
+    client.to(`canvas:${payload.boardId}`).emit("canvas_laser_stopped", {
+      boardId: payload.boardId,
+      userId: client.data.userId,
+    });
+  }
+
+  @UseGuards(WsAuthGuard)
+  @SubscribeMessage("canvas_presenter_follow")
+  handleCanvasPresenterFollow(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() payload: { boardId: string; presenterId: string; following: boolean },
+  ): void {
+    client.to(`canvas:${payload.boardId}`).emit("canvas_presenter_follow_changed", {
+      boardId: payload.boardId,
+      presenterId: payload.presenterId,
+      followerId: client.data.userId,
+      following: payload.following,
+    });
+  }
+
+  @UseGuards(WsAuthGuard)
+  @SubscribeMessage("canvas_sync_request")
+  handleCanvasSyncRequest(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() payload: { boardId: string; sessionId: string },
+  ): void {
+    client.to(`canvas:${payload.boardId}`).emit("canvas_sync_requested", {
+      boardId: payload.boardId,
+      requesterId: client.data.userId,
+      sessionId: payload.sessionId,
+    });
+  }
+
+  // ── @OnEvent broadcast handlers (NestJS events → canvas room) ────────────
+
+  @OnEvent(EVENTS.CANVAS_OPENED)
+  handleCanvasOpened(
+    payload: import("../events/event-payloads").CanvasBoardPayload,
+  ): void {
+    this.server.to(`canvas:${payload.boardId}`).emit("canvas_opened", payload);
+  }
+
+  @OnEvent(EVENTS.CANVAS_UPDATED)
+  handleCanvasUpdated(
+    payload: import("../events/event-payloads").CanvasBoardPayload,
+  ): void {
+    this.server.to(`canvas:${payload.boardId}`).emit("canvas_updated", payload);
+  }
+
+  @OnEvent(EVENTS.CANVAS_CLOSED)
+  handleCanvasClosed(
+    payload: import("../events/event-payloads").CanvasBoardPayload,
+  ): void {
+    this.server.to(`canvas:${payload.boardId}`).emit("canvas_closed", payload);
+  }
+
+  @OnEvent(EVENTS.CANVAS_ELEMENT_CREATED)
+  handleCanvasElementCreatedEvent(
+    payload: import("../events/event-payloads").CanvasElementPayload,
+  ): void {
+    this.server.to(`canvas:${payload.boardId}`).emit("canvas_element_created", payload);
+  }
+
+  @OnEvent(EVENTS.CANVAS_ELEMENT_UPDATED)
+  handleCanvasElementUpdatedEvent(
+    payload: import("../events/event-payloads").CanvasElementPayload,
+  ): void {
+    this.server.to(`canvas:${payload.boardId}`).emit("canvas_element_updated", payload);
+  }
+
+  @OnEvent(EVENTS.CANVAS_ELEMENT_DELETED)
+  handleCanvasElementDeletedEvent(
+    payload: import("../events/event-payloads").CanvasElementPayload,
+  ): void {
+    this.server.to(`canvas:${payload.boardId}`).emit("canvas_element_deleted", payload);
+  }
+
+  @OnEvent(EVENTS.CANVAS_ELEMENT_LOCKED)
+  handleCanvasElementLockedEvent(
+    payload: import("../events/event-payloads").CanvasLockPayload,
+  ): void {
+    this.server.to(`canvas:${payload.boardId}`).emit("canvas_element_locked", payload);
+  }
+
+  @OnEvent(EVENTS.CANVAS_ELEMENT_UNLOCKED)
+  handleCanvasElementUnlockedEvent(
+    payload: import("../events/event-payloads").CanvasLockPayload,
+  ): void {
+    this.server.to(`canvas:${payload.boardId}`).emit("canvas_element_unlocked", payload);
+  }
+
+  @OnEvent(EVENTS.CANVAS_COMMENT_CREATED)
+  handleCanvasCommentCreatedEvent(
+    payload: import("../events/event-payloads").CanvasCommentPayload,
+  ): void {
+    this.server.to(`canvas:${payload.boardId}`).emit("canvas_comment_created", payload);
+  }
 }

@@ -86,10 +86,25 @@ export const EVENTS = {
   MEET_BREAKOUT_CREATED: "meet.breakout.created",
   MEET_BREAKOUT_CLOSED: "meet.breakout.closed",
 
-  // Canvas (future v1.6.0)
+  // Canvas (v1.6.0)
   CANVAS_OPENED: "canvas.opened",
   CANVAS_UPDATED: "canvas.updated",
   CANVAS_CLOSED: "canvas.closed",
+  CANVAS_ELEMENT_CREATED: "canvas.element.created",
+  CANVAS_ELEMENT_UPDATED: "canvas.element.updated",
+  CANVAS_ELEMENT_DELETED: "canvas.element.deleted",
+  CANVAS_ELEMENT_LOCKED: "canvas.element.locked",
+  CANVAS_ELEMENT_UNLOCKED: "canvas.element.unlocked",
+  CANVAS_COMMENT_CREATED: "canvas.comment.created",
+  CANVAS_CURSOR_MOVED: "canvas.cursor.moved",
+  CANVAS_SELECTION_CHANGED: "canvas.selection.changed",
+  CANVAS_VIEWPORT_CHANGED: "canvas.viewport.changed",
+  CANVAS_LASER_START: "canvas.laser.start",
+  CANVAS_LASER_MOVE: "canvas.laser.move",
+  CANVAS_LASER_STOP: "canvas.laser.stop",
+  CANVAS_PRESENTER_FOLLOW: "canvas.presenter.follow",
+  CANVAS_SYNC_REQUEST: "canvas.sync.request",
+  CANVAS_SYNC_RESPONSE: "canvas.sync.response",
 
   // Documents (v0.8.0+)
   DOCUMENT_CREATED: "document.created",
