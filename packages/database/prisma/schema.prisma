@@ -704,6 +704,22 @@ model User {
   canvasSharesCreated        CanvasShare[]             @relation("CanvasShareCreator")
   canvasPresences            CanvasPresence[]          @relation("CanvasPresences")
   canvasActivities           CanvasActivity[]          @relation("CanvasActivities")
+
+  // ── Drive v1.7.0 back-relations ───────────────────────────────────────────
+  driveItemsOwned            DriveItem[]               @relation("DriveOwner")
+  driveVersionsUploaded      DriveVersion[]            @relation("DriveVersionUploader")
+  drivePermissionsGranted    DrivePermission[]         @relation("DrivePermissionGranter")
+  driveSharesCreated         DriveShare[]              @relation("DriveShareCreator")
+  driveFavorites             DriveFavorite[]           @relation("DriveUserFavorites")
+  driveRecent                DriveRecent[]             @relation("DriveUserRecent")
+  driveCommentsAuthored      DriveComment[]            @relation("DriveCommentAuthor")
+  driveAuditEvents           DriveAudit[]              @relation("DriveAuditActor")
+  driveRetentionPolicies     DriveRetentionPolicy[]    @relation("DriveRetentionPolicyCreator")
+  driveLocks                 DriveLock[]               @relation("DriveLockHolder")
+  driveCheckouts             DriveCheckout[]           @relation("DriveCheckoutUser")
+  driveRecycleBin            DriveRecycleBin[]         @relation("DriveRecycleBinUser")
+  driveTrashedItems          DriveItem[]               @relation("DriveTrashedBy")
+
   createdAt                  DateTime                  @default(now())
   updatedAt                  DateTime                  @updatedAt
   deletedAt                  DateTime?
@@ -3755,3 +3771,894 @@ model CanvasActivity {
 // ─── User back-relations for Canvas (v1.6.0) ─────────────────────────────────
 // NOTE: The relation fields below are added to the User model via the back-relation
 // declarations above. Prisma auto-generates them; no ALTER TABLE needed on users.
+
+// =============================================================================
+// PRINODIA DRIVE — v1.7.0
+// Secure enterprise file system powering every Prinodia product.
+// =============================================================================
+
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
+enum DriveItemType {
+  FILE
+  FOLDER
+}
+
+enum DriveItemStatus {
+  ACTIVE
+  TRASHED
+  PERMANENTLY_DELETED
+}
+
+enum DrivePermissionRole {
+  OWNER
+  EDITOR
+  COMMENTER
+  VIEWER
+  GUEST
+}
+
+enum DriveShareScope {
+  USER
+  DEPARTMENT
+  MINISTRY
+  ORGANIZATION
+  PUBLIC
+}
+
+enum DriveStorageProviderType {
+  LOCAL
+  S3
+  AZURE_BLOB
+  GCS
+  MINIO
+}
+
+enum DrivePreviewStatus {
+  PENDING
+  READY
+  FAILED
+  UNSUPPORTED
+}
+
+enum DriveVirusScanStatus {
+  PENDING
+  CLEAN
+  INFECTED
+  ERROR
+  SKIPPED
+}
+
+enum DriveSyncJobStatus {
+  PENDING
+  PROCESSING
+  DONE
+  FAILED
+}
+
+enum DriveSyncJobType {
+  THUMBNAIL
+  PREVIEW
+  VIRUS_SCAN
+  VERSION_CLEANUP
+  RECYCLE_PURGE
+  QUOTA_RECALC
+}
+
+// ─── DriveItem ────────────────────────────────────────────────────────────────
+// Core entity — represents both files and folders.
+// Folders: type=FOLDER, storageKey/mimeType are null.
+// Files:   type=FILE,   storageKey points to the binary in the storage provider.
+
+model DriveItem {
+  id              String                @id @default(cuid())
+  name            String                @db.VarChar(500)
+  type            DriveItemType
+  status          DriveItemStatus       @default(ACTIVE)
+
+  // ── File-only fields ──────────────────────────────────────────────────────
+  mimeType        String?               @db.VarChar(200)
+  extension       String?               @db.VarChar(50)
+  sizeBytes       BigInt?
+  storageKey      String?               @db.VarChar(1000) // path/key inside storage provider
+  storageProvider DriveStorageProviderType @default(LOCAL)
+  checksum        String?               @db.VarChar(128)  // SHA-256 hex
+  currentVersionNum Int                 @default(1)
+
+  // ── Folder hierarchy ──────────────────────────────────────────────────────
+  parentId        String?
+  parent          DriveItem?            @relation("DriveItemChildren", fields: [parentId], references: [id])
+  children        DriveItem[]           @relation("DriveItemChildren")
+
+  // ── Ownership ─────────────────────────────────────────────────────────────
+  ownerId         String
+  owner           User                  @relation("DriveOwner", fields: [ownerId], references: [id])
+
+  // ── Org scoping (stored as plain IDs — no formal Prisma relations to
+  //    avoid modifying existing Ministry/Department/Division models) ──────────
+  organizationId  String
+  ministryId      String?
+  departmentId    String?
+  divisionId      String?
+
+  // ── Context bindings (plain IDs) ─────────────────────────────────────────
+  meetingId       String?               // files from a Meet session
+  channelId       String?               // files from a Chat channel
+  canvasBoardId   String?               // exports from a Canvas board
+  workflowId      String?               // attachments in a Workflow
+
+  // ── Metadata ──────────────────────────────────────────────────────────────
+  description     String?               @db.Text
+  isLocked        Boolean               @default(false)
+  isPinned        Boolean               @default(false)
+
+  // ── Preview / thumbnail ───────────────────────────────────────────────────
+  previewStatus   DrivePreviewStatus    @default(PENDING)
+  thumbnailUrl    String?               @db.VarChar(500)
+  previewUrl      String?               @db.VarChar(500)
+
+  // ── Virus scan ────────────────────────────────────────────────────────────
+  virusScanStatus DriveVirusScanStatus  @default(PENDING)
+  virusScanAt     DateTime?
+
+  // ── Soft delete / recycle ─────────────────────────────────────────────────
+  trashedAt       DateTime?
+  trashedById     String?
+  trashedBy       User?                 @relation("DriveTrashedBy", fields: [trashedById], references: [id])
+
+  // ── Timestamps ────────────────────────────────────────────────────────────
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+  lastAccessedAt  DateTime?
+
+  // ── Relations ─────────────────────────────────────────────────────────────
+  versions        DriveVersion[]
+  permissions     DrivePermission[]
+  shares          DriveShare[]
+  favorites       DriveFavorite[]
+  recent          DriveRecent[]
+  tags            DriveTag[]
+  comments        DriveComment[]
+  audits          DriveAudit[]
+  checkouts       DriveCheckout[]
+  recycleBin      DriveRecycleBin?
+  thumbnails      DriveThumbnail[]
+  preview         DrivePreview?
+  virusScan       DriveVirusScan?
+  lock            DriveLock?
+
+  @@index([organizationId])
+  @@index([ownerId])
+  @@index([parentId])
+  @@index([type])
+  @@index([status])
+  @@index([mimeType])
+  @@index([meetingId])
+  @@index([channelId])
+  @@index([canvasBoardId])
+  @@index([workflowId])
+  @@index([trashedAt])
+  @@index([createdAt])
+  @@index([organizationId, status])
+  @@index([organizationId, type, status])
+  @@map("drive_items")
+}
+
+// ─── DriveVersion ─────────────────────────────────────────────────────────────
+// Version history for a file. v1 is created on initial upload.
+
+model DriveVersion {
+  id            String    @id @default(cuid())
+  itemId        String
+  item          DriveItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  versionNum    Int
+  sizeBytes     BigInt?
+  storageKey    String    @db.VarChar(1000)
+  storageProvider DriveStorageProviderType @default(LOCAL)
+  checksum      String?   @db.VarChar(128)
+  changeNote    String?   @db.VarChar(500)
+  uploadedById  String
+  uploadedBy    User      @relation("DriveVersionUploader", fields: [uploadedById], references: [id])
+  createdAt     DateTime  @default(now())
+
+  @@unique([itemId, versionNum])
+  @@index([itemId])
+  @@index([uploadedById])
+  @@map("drive_versions")
+}
+
+// ─── DrivePermission ──────────────────────────────────────────────────────────
+// Fine-grained access control. A permission can target a user, dept, org, etc.
+
+model DrivePermission {
+  id            String              @id @default(cuid())
+  itemId        String
+  item          DriveItem           @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  role          DrivePermissionRole
+  scope         DriveShareScope
+  // Scope targets (exactly one should be set)
+  userId        String?
+  user          User?               @relation("DrivePermissionGranter", fields: [userId], references: [id])
+  // org/dept/ministry as plain string IDs to avoid touching existing models
+  ministryId    String?
+  departmentId  String?
+  divisionId    String?
+  organizationId String?
+  // Metadata
+  grantedById   String
+  expiresAt     DateTime?
+  createdAt     DateTime            @default(now())
+
+  @@index([itemId])
+  @@index([userId])
+  @@index([itemId, userId])
+  @@map("drive_permissions")
+}
+
+// ─── DriveShare ───────────────────────────────────────────────────────────────
+// Shareable links (public, password-protected, expiring).
+
+model DriveShare {
+  id          String              @id @default(cuid())
+  itemId      String
+  item        DriveItem           @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  token       String              @unique @db.VarChar(64)
+  role        DrivePermissionRole @default(VIEWER)
+  label       String?             @db.VarChar(100)
+  password    String?             @db.VarChar(200)  // bcrypt hash
+  maxUses     Int?
+  uses        Int                 @default(0)
+  expiresAt   DateTime?
+  revokedAt   DateTime?
+  createdById String
+  createdBy   User                @relation("DriveShareCreator", fields: [createdById], references: [id])
+  createdAt   DateTime            @default(now())
+
+  @@index([itemId])
+  @@index([token])
+  @@map("drive_shares")
+}
+
+// ─── DriveFavorite ────────────────────────────────────────────────────────────
+
+model DriveFavorite {
+  id        String    @id @default(cuid())
+  itemId    String
+  item      DriveItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User      @relation("DriveUserFavorites", fields: [userId], references: [id])
+  createdAt DateTime  @default(now())
+
+  @@unique([itemId, userId])
+  @@index([userId])
+  @@map("drive_favorites")
+}
+
+// ─── DriveRecent ──────────────────────────────────────────────────────────────
+
+model DriveRecent {
+  id          String    @id @default(cuid())
+  itemId      String
+  item        DriveItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User      @relation("DriveUserRecent", fields: [userId], references: [id])
+  accessedAt  DateTime  @default(now())
+
+  @@unique([itemId, userId])
+  @@index([userId, accessedAt])
+  @@map("drive_recent")
+}
+
+// ─── DriveTag ─────────────────────────────────────────────────────────────────
+
+model DriveTag {
+  id          String    @id @default(cuid())
+  itemId      String
+  item        DriveItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  name        String    @db.VarChar(100)
+  color       String?   @db.VarChar(7)  // hex color e.g. "#6366F1"
+  createdById String
+  createdAt   DateTime  @default(now())
+
+  @@unique([itemId, name])
+  @@index([itemId])
+  @@index([name])
+  @@map("drive_tags")
+}
+
+// ─── DriveComment ─────────────────────────────────────────────────────────────
+
+model DriveComment {
+  id          String         @id @default(cuid())
+  itemId      String
+  item        DriveItem      @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  authorId    String
+  author      User           @relation("DriveCommentAuthor", fields: [authorId], references: [id])
+  content     String         @db.Text
+  replyToId   String?
+  replyTo     DriveComment?  @relation("DriveCommentReplies", fields: [replyToId], references: [id])
+  replies     DriveComment[] @relation("DriveCommentReplies")
+  resolvedAt  DateTime?
+  deletedAt   DateTime?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@index([itemId])
+  @@index([authorId])
+  @@map("drive_comments")
+}
+
+// ─── DriveAudit ───────────────────────────────────────────────────────────────
+// Immutable audit log of every action on every Drive item.
+
+model DriveAudit {
+  id          String    @id @default(cuid())
+  itemId      String
+  item        DriveItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  actorId     String
+  actor       User      @relation("DriveAuditActor", fields: [actorId], references: [id])
+  action      String    @db.VarChar(100)  // "upload", "download", "share", "rename", "move", etc.
+  metadata    Json      @default("{}")
+  ipAddress   String?   @db.VarChar(50)
+  userAgent   String?   @db.VarChar(300)
+  createdAt   DateTime  @default(now())
+
+  @@index([itemId])
+  @@index([actorId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("drive_audits")
+}
+
+// ─── DriveRetentionPolicy ─────────────────────────────────────────────────────
+// Org-level retention rules. Files matching a policy are auto-deleted
+// (or held for legal hold) after retentionDays.
+
+model DriveRetentionPolicy {
+  id               String    @id @default(cuid())
+  name             String    @db.VarChar(255)
+  organizationId   String
+  retentionDays    Int
+  applyToFolderIds String[]  // DriveItem IDs of folder roots
+  applyToMimeTypes String[]  // e.g. ["application/pdf"]
+  isActive         Boolean   @default(true)
+  isLegalHold      Boolean   @default(false)  // legal hold: never auto-delete
+  createdById      String
+  createdBy        User      @relation("DriveRetentionPolicyCreator", fields: [createdById], references: [id])
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([organizationId])
+  @@map("drive_retention_policies")
+}
+
+// ─── DriveStorageQuota ────────────────────────────────────────────────────────
+// Per-organization storage quota.
+
+model DriveStorageQuota {
+  id             String   @id @default(cuid())
+  organizationId String   @unique
+  totalBytes     BigInt   @default(10737418240)  // 10 GB default
+  usedBytes      BigInt   @default(0)
+  fileCount      Int      @default(0)
+  updatedAt      DateTime @updatedAt
+
+  @@map("drive_storage_quotas")
+}
+
+// ─── DriveThumbnail ───────────────────────────────────────────────────────────
+
+model DriveThumbnail {
+  id         String    @id @default(cuid())
+  itemId     String
+  item       DriveItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  size       String    @db.VarChar(10)   // "sm" | "md" | "lg"
+  width      Int
+  height     Int
+  storageKey String    @db.VarChar(1000)
+  createdAt  DateTime  @default(now())
+
+  @@unique([itemId, size])
+  @@index([itemId])
+  @@map("drive_thumbnails")
+}
+
+// ─── DrivePreview ─────────────────────────────────────────────────────────────
+// Rendered preview (HTML/image) for supported file types.
+
+model DrivePreview {
+  id        String             @id @default(cuid())
+  itemId    String             @unique
+  item      DriveItem          @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  status    DrivePreviewStatus @default(PENDING)
+  url       String?            @db.VarChar(500)
+  expiresAt DateTime?
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+
+  @@map("drive_previews")
+}
+
+// ─── DriveLock ────────────────────────────────────────────────────────────────
+// Pessimistic file lock — prevents concurrent edits.
+
+model DriveLock {
+  id         String    @id @default(cuid())
+  itemId     String    @unique
+  item       DriveItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  lockedById String
+  lockedBy   User      @relation("DriveLockHolder", fields: [lockedById], references: [id])
+  reason     String?   @db.VarChar(500)
+  expiresAt  DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@map("drive_locks")
+}
+
+// ─── DriveCheckout ────────────────────────────────────────────────────────────
+// Check-out / check-in workflow for controlled document editing.
+
+model DriveCheckout {
+  id              String    @id @default(cuid())
+  itemId          String
+  item            DriveItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  checkedOutById  String
+  checkedOutBy    User      @relation("DriveCheckoutUser", fields: [checkedOutById], references: [id])
+  checkedOutAt    DateTime  @default(now())
+  checkedInAt     DateTime?
+  checkInNote     String?   @db.VarChar(500)
+
+  @@index([itemId])
+  @@index([checkedOutById])
+  @@map("drive_checkouts")
+}
+
+// ─── DriveVirusScan ───────────────────────────────────────────────────────────
+
+model DriveVirusScan {
+  id          String               @id @default(cuid())
+  itemId      String               @unique
+  item        DriveItem            @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  status      DriveVirusScanStatus @default(PENDING)
+  engine      String?              @db.VarChar(100)
+  scannedAt   DateTime?
+  result      Json                 @default("{}")
+  createdAt   DateTime             @default(now())
+
+  @@map("drive_virus_scans")
+}
+
+// ─── DriveSyncJob ─────────────────────────────────────────────────────────────
+// Background job queue for async Drive operations (thumbnails, virus scans, etc.).
+
+model DriveSyncJob {
+  id          String            @id @default(cuid())
+  itemId      String?
+  type        DriveSyncJobType
+  status      DriveSyncJobStatus @default(PENDING)
+  metadata    Json               @default("{}")
+  error       String?            @db.Text
+  startedAt   DateTime?
+  completedAt DateTime?
+  createdAt   DateTime           @default(now())
+
+  @@index([type, status])
+  @@index([itemId])
+  @@index([createdAt])
+  @@map("drive_sync_jobs")
+}
+
+// ─── DriveRecycleBin ──────────────────────────────────────────────────────────
+// Soft-delete registry. Items stay here until permanently purged.
+
+model DriveRecycleBin {
+  id                  String    @id @default(cuid())
+  itemId              String    @unique
+  item                DriveItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  trashedById         String
+  trashedBy           User      @relation("DriveRecycleBinUser", fields: [trashedById], references: [id])
+  originalParentId    String?   // folder the item was in before trashing
+  permanentDeleteAt   DateTime  // scheduled permanent deletion date
+  createdAt           DateTime  @default(now())
+
+  @@index([trashedById])
+  @@index([permanentDeleteAt])
+  @@map("drive_recycle_bin")
+}
+
+// =============================================================================
+// PLATFORM FOUNDATION — v1.6.2
+// Business & SaaS commercial engine: subscriptions, licensing, feature flags,
+// modules, API keys, support tickets, billing, downloads, email templates,
+// onboarding wizard, and platform admin audit logs.
+// Additive only — no existing models are modified.
+// =============================================================================
+
+// ─── Enums ───────────────────────────────────────────────────────────────────
+
+enum PlanTier {
+  STARTER
+  BUSINESS
+  ENTERPRISE
+  GOVERNMENT
+  EDUCATION
+  HEALTHCARE
+  NGO
+  CHURCH
+  CUSTOM
+}
+
+enum SubscriptionStatus {
+  TRIALING
+  ACTIVE
+  PAST_DUE
+  GRACE_PERIOD
+  CANCELLED
+  EXPIRED
+}
+
+enum InvoiceStatus {
+  DRAFT
+  OPEN
+  PAID
+  VOID
+  UNCOLLECTIBLE
+}
+
+enum TicketCategory {
+  BILLING
+  TECHNICAL
+  ACCOUNT
+  FEATURE_REQUEST
+  SECURITY
+  OTHER
+}
+
+enum TicketPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  WAITING_ON_CUSTOMER
+  RESOLVED
+  CLOSED
+}
+
+enum DownloadPlatform {
+  WINDOWS
+  MAC
+  LINUX
+  IOS
+  ANDROID
+  CHROME_EXTENSION
+  FIREFOX_EXTENSION
+  ALL
+}
+
+enum DownloadCategory {
+  DESKTOP_APP
+  MOBILE_APP
+  BROWSER_EXTENSION
+  CLI_TOOL
+  SDK
+  OTHER
+}
+
+enum EmailTemplateCategory {
+  ONBOARDING
+  BILLING
+  SECURITY
+  SYSTEM
+  MARKETING
+  SUPPORT
+}
+
+// ─── SubscriptionPlan — defines available SaaS tiers ─────────────────────────
+
+model SubscriptionPlan {
+  id               String            @id @default(cuid())
+  name             String            @db.VarChar(100)
+  slug             String            @unique @db.VarChar(50)
+  description      String?           @db.Text
+  tier             PlanTier          @default(STARTER)
+  priceMonthly     Decimal?          @db.Decimal(10, 2)
+  priceAnnually    Decimal?          @db.Decimal(10, 2)
+  currency         String            @default("USD") @db.VarChar(3)
+  maxSeats         Int?
+  minSeats         Int               @default(1)
+  storagePerSeatGb Int               @default(5)
+  maxStorageGb     Int?
+  trialDays        Int               @default(14)
+  features         Json              @default("{}")
+  modules          Json              @default("{}")
+  isActive         Boolean           @default(true)
+  isPublic         Boolean           @default(true)
+  sortOrder        Int               @default(0)
+  subscriptions    OrgSubscription[]
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  @@index([tier])
+  @@index([isActive])
+  @@map("subscription_plans")
+}
+
+// ─── OrgSubscription — active subscription record for an org ─────────────────
+
+model OrgSubscription {
+  id                 String             @id @default(cuid())
+  organizationId     String             @unique
+  planId             String
+  plan               SubscriptionPlan   @relation(fields: [planId], references: [id])
+  status             SubscriptionStatus @default(TRIALING)
+  seatCount          Int                @default(1)
+  maxSeats           Int?
+  trialStartsAt      DateTime?
+  trialEndsAt        DateTime?
+  currentPeriodStart DateTime?
+  currentPeriodEnd   DateTime?
+  cancelledAt        DateTime?
+  externalId         String?            @db.VarChar(255)
+  metadata           Json               @default("{}")
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  @@index([organizationId])
+  @@index([status])
+  @@map("org_subscriptions")
+}
+
+// ─── OrgPlatformProfile — SaaS/platform fields extending Organization (1:1) ──
+
+model OrgPlatformProfile {
+  id                     String    @id @default(cuid())
+  organizationId         String    @unique
+  primaryColor           String?   @db.VarChar(7)
+  accentColor            String?   @db.VarChar(7)
+  faviconUrl             String?   @db.VarChar(500)
+  companyTagline         String?   @db.VarChar(255)
+  billingEmail           String?   @db.VarChar(255)
+  technicalEmail         String?   @db.VarChar(255)
+  customDomain           String?   @unique @db.VarChar(255)
+  customDomainVerified   Boolean   @default(false)
+  customDomainVerifiedAt DateTime?
+  onboardingCompleted    Boolean   @default(false)
+  onboardingStep         Int       @default(0)
+  activatedAt            DateTime?
+  seatsUsed              Int       @default(0)
+  whitelabelEnabled      Boolean   @default(false)
+  taxId                  String?   @db.VarChar(100)
+  billingAddress         Json?
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+
+  @@map("org_platform_profiles")
+}
+
+// ─── OrgFeatureFlag — per-org feature flags ──────────────────────────────────
+
+model OrgFeatureFlag {
+  id             String   @id @default(cuid())
+  organizationId String
+  featureKey     String   @db.VarChar(100)
+  enabled        Boolean  @default(true)
+  config         Json?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([organizationId, featureKey])
+  @@index([organizationId])
+  @@map("org_feature_flags")
+}
+
+// ─── OrgModuleConfig — module enable/disable per org ─────────────────────────
+
+model OrgModuleConfig {
+  id             String    @id @default(cuid())
+  organizationId String
+  moduleKey      String    @db.VarChar(100)
+  enabled        Boolean   @default(true)
+  config         Json?
+  enabledAt      DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@unique([organizationId, moduleKey])
+  @@index([organizationId])
+  @@map("org_module_configs")
+}
+
+// ─── ApiKey — per-org API key management ─────────────────────────────────────
+
+model ApiKey {
+  id             String    @id @default(cuid())
+  organizationId String
+  createdById    String
+  name           String    @db.VarChar(255)
+  keyHash        String    @unique @db.VarChar(255)
+  keyPrefix      String    @db.VarChar(16)
+  scopes         String[]  @default([])
+  rateLimitRpm   Int       @default(60)
+  lastUsedAt     DateTime?
+  expiresAt      DateTime?
+  isActive       Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([organizationId])
+  @@index([isActive])
+  @@map("api_keys")
+}
+
+// ─── SupportTicket — customer support tickets ────────────────────────────────
+
+model SupportTicket {
+  id             String                 @id @default(cuid())
+  organizationId String
+  submittedById  String
+  ticketNumber   String                 @unique @db.VarChar(20)
+  subject        String                 @db.VarChar(500)
+  description    String                 @db.Text
+  category       TicketCategory         @default(TECHNICAL)
+  priority       TicketPriority         @default(NORMAL)
+  status         TicketStatus           @default(OPEN)
+  assignedToId   String?
+  resolvedAt     DateTime?
+  closedAt       DateTime?
+  messages       SupportTicketMessage[]
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+
+  @@index([organizationId])
+  @@index([status])
+  @@index([priority])
+  @@index([ticketNumber])
+  @@map("support_tickets")
+}
+
+model SupportTicketMessage {
+  id         String        @id @default(cuid())
+  ticketId   String
+  ticket     SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  authorId   String
+  message    String        @db.Text
+  isInternal Boolean       @default(false)
+  createdAt  DateTime      @default(now())
+
+  @@index([ticketId])
+  @@map("support_ticket_messages")
+}
+
+// ─── AdminAuditLog — platform admin actions ──────────────────────────────────
+
+model AdminAuditLog {
+  id             String   @id @default(cuid())
+  actorId        String?
+  actorEmail     String?  @db.VarChar(255)
+  organizationId String?
+  action         String   @db.VarChar(200)
+  targetType     String?  @db.VarChar(100)
+  targetId       String?  @db.VarChar(100)
+  changes        Json?
+  metadata       Json?
+  ipAddress      String?  @db.VarChar(50)
+  userAgent      String?  @db.VarChar(500)
+  createdAt      DateTime @default(now())
+
+  @@index([actorId])
+  @@index([organizationId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("admin_audit_logs")
+}
+
+// ─── Invoice — billing data models ───────────────────────────────────────────
+
+model Invoice {
+  id                 String          @id @default(cuid())
+  organizationId     String
+  invoiceNumber      String          @unique @db.VarChar(30)
+  status             InvoiceStatus   @default(DRAFT)
+  subtotalCents      Int
+  taxCents           Int             @default(0)
+  discountCents      Int             @default(0)
+  totalCents         Int
+  currency           String          @default("USD") @db.VarChar(3)
+  billingPeriodStart DateTime
+  billingPeriodEnd   DateTime
+  dueDate            DateTime
+  paidAt             DateTime?
+  externalId         String?         @db.VarChar(255)
+  externalUrl        String?         @db.VarChar(500)
+  notes              String?         @db.Text
+  lineItems          InvoiceLineItem[]
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+
+  @@index([organizationId])
+  @@index([status])
+  @@index([dueDate])
+  @@map("invoices")
+}
+
+model InvoiceLineItem {
+  id             String   @id @default(cuid())
+  invoiceId      String
+  invoice        Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  description    String   @db.VarChar(500)
+  quantity       Int      @default(1)
+  unitPriceCents Int
+  totalCents     Int
+  createdAt      DateTime @default(now())
+
+  @@index([invoiceId])
+  @@map("invoice_line_items")
+}
+
+// ─── DownloadAsset — download center metadata ────────────────────────────────
+
+model DownloadAsset {
+  id              String           @id @default(cuid())
+  name            String           @db.VarChar(255)
+  description     String?          @db.Text
+  platform        DownloadPlatform
+  category        DownloadCategory
+  version         String           @db.VarChar(50)
+  fileUrl         String           @db.VarChar(500)
+  fileSizeBytes   BigInt
+  fileHash        String?          @db.VarChar(64)
+  minimumPlanTier PlanTier?
+  isActive        Boolean          @default(true)
+  isFeatured      Boolean          @default(false)
+  releaseNotes    String?          @db.Text
+  publishedAt     DateTime?
+  downloadCount   Int              @default(0)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  @@index([platform])
+  @@index([category])
+  @@index([isActive])
+  @@map("download_assets")
+}
+
+// ─── EmailTemplate — notification template registry ──────────────────────────
+
+model EmailTemplate {
+  id        String                @id @default(cuid())
+  slug      String                @unique @db.VarChar(100)
+  name      String                @db.VarChar(255)
+  subject   String                @db.VarChar(500)
+  htmlBody  String                @db.Text
+  textBody  String?               @db.Text
+  variables String[]              @default([])
+  category  EmailTemplateCategory @default(SYSTEM)
+  isActive  Boolean               @default(true)
+  createdAt DateTime              @default(now())
+  updatedAt DateTime              @updatedAt
+
+  @@index([slug])
+  @@index([category])
+  @@map("email_templates")
+}
+
+// ─── OnboardingProgress — org onboarding wizard state ────────────────────────
+
+model OnboardingProgress {
+  id             String    @id @default(cuid())
+  organizationId String    @unique
+  currentStep    Int       @default(0)
+  completedSteps Json      @default("[]")
+  isCompleted    Boolean   @default(false)
+  completedAt    DateTime?
+  data           Json      @default("{}")
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@map("onboarding_progress")
+}

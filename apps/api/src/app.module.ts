@@ -27,12 +27,14 @@ import { HealthModule } from "./health/health.module";
 import { IdentityModule } from "./identity/identity.module";
 import { CanvasModule } from "./canvas/canvas.module";
 import { MeetModule } from "./meet/meet.module";
+import { DriveModule } from "./drive/drive.module";
 import { CacheModule } from "./infrastructure/cache/cache.module";
 import { EventsModule } from "./infrastructure/events/events.module";
 import { QueueModule } from "./infrastructure/queue/queue.module";
 import { RedisModule } from "./infrastructure/redis/redis.module";
 import { StorageModule } from "./infrastructure/storage/storage.module";
 import { OrganizationModule } from "./organizations/organization.module";
+import { PlatformModule } from "./platform/platform.module";
 import { PrismaModule } from "./prisma/prisma.module";
 import { PeopleModule } from "./people/people.module";
 import { RealtimeModule } from "./realtime/realtime.module";
@@ -93,6 +95,12 @@ import { WorkflowsModule } from "./workflows/workflows.module";
 
     // ── Health ───────────────────────────────────────────────────────────────
     HealthModule, // GET /health, /health/live, /health/ready, /health/db
+
+    // ── Drive (v1.7.0) ───────────────────────────────────────────────────────
+    DriveModule, // GET/POST /v1/drive — Prinodia Drive file system
+
+    // ── Platform (v1.6.2) ────────────────────────────────────────────────────
+    PlatformModule, // Business & SaaS engine: subscriptions, licensing, feature flags, support, billing
   ],
 
   providers: [

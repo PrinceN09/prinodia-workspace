@@ -218,7 +218,13 @@ export default function DemoDataPage() {
 
             {/* Actions */}
             <div className="flex items-center gap-3">
-              <Button onClick={() => { void handleGenerate(); }} loading={generating} size="lg">
+              <Button
+                onClick={() => {
+                  void handleGenerate();
+                }}
+                loading={generating}
+                size="lg"
+              >
                 ⚡ Générer les données démo
               </Button>
               {status?.hasDemoData && (
@@ -369,7 +375,13 @@ export default function DemoDataPage() {
               <Button variant="secondary" onClick={() => setShowResetConfirm(false)}>
                 Annuler
               </Button>
-              <Button variant="danger" onClick={() => { void handleReset(); }} loading={resetting}>
+              <Button
+                variant="danger"
+                onClick={() => {
+                  void handleReset();
+                }}
+                loading={resetting}
+              >
                 Réinitialiser
               </Button>
             </div>

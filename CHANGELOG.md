@@ -7,6 +7,172 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Version
 
 ---
 
+## [1.6.2] — 2026-06-30
+
+**Business Platform Foundation.** The complete SaaS commercial engine for Prinodia Workspace.
+Covers the full customer and platform-admin lifecycle: multi-tenant provisioning, subscription
+plans, seat and license management, feature flags, module toggles, storage quotas, trial
+organizations, a customer self-service portal, an internal operator portal, API key management,
+billing data models (integration-ready), organization branding, custom subdomain support,
+transactional email templates, a 6-step customer onboarding wizard, workspace activation flow,
+a download center, support tickets, and admin audit logs. All changes are additive; no existing
+models, APIs, or migrations are modified.
+
+**Breaking changes:** None. All existing services, endpoints, and data are fully preserved.
+
+### Added
+
+**Schema — `packages/database` (Prisma models)**
+- 9 new enums: `PlanTier` (STARTER, BUSINESS, ENTERPRISE, GOVERNMENT, EDUCATION, HEALTHCARE,
+  NGO, CHURCH, CUSTOM), `SubscriptionStatus`, `InvoiceStatus`, `TicketCategory`,
+  `TicketPriority`, `TicketStatus`, `DownloadPlatform`, `DownloadCategory`,
+  `EmailTemplateCategory`.
+- 14 new models: `SubscriptionPlan`, `OrgSubscription`, `OrgPlatformProfile` (1:1 with
+  existing `Organization`), `OrgFeatureFlag`, `OrgModuleConfig`, `ApiKey`,
+  `SupportTicket`, `SupportTicketMessage`, `AdminAuditLog`, `Invoice`, `InvoiceLineItem`,
+  `DownloadAsset`, `EmailTemplate`, `OnboardingProgress`.
+- SQL migration `20260630000000_v1_6_2_platform_foundation` — full PostgreSQL DDL.
+
+**API — `apps/api/src/platform` (PlatformModule)**
+- `PlatformOrganizationsService` + controller: list, detail, provision (transaction),
+  status update, get/update branding — `GET|POST|PATCH /v1/platform/organizations`.
+- `SubscriptionsService` + controller: CRUD for `SubscriptionPlan`; get/update/cancel
+  `OrgSubscription` — `GET|POST|PATCH /v1/platform/plans`, `GET|POST /v1/platform/subscriptions`.
+- `FeaturesService` + controller: per-org feature flags and module enable/disable —
+  `GET|PUT /v1/platform/features/:orgId`, `GET|PUT /v1/platform/modules/:orgId`.
+- `ApiKeysService` + controller: generate (SHA-256 hash, raw key returned once), list,
+  update, revoke — `GET|POST|PATCH|DELETE /v1/platform/api-keys/:orgId`.
+- `SupportService` + controller: create ticket (`TKT-YEAR-XXXXXX`), add message, update
+  status (sets `resolvedAt`/`closedAt`) — `GET|POST /v1/platform/support/tickets`.
+- `AdminAuditService` + controller: immutable log with date-range filtering —
+  `GET /v1/platform/audit`.
+- `BillingService` + controller: invoice management (`INV-YEAR-XXXXX`), auto-total,
+  mark-paid — `GET|POST|PATCH /v1/platform/billing/invoices`.
+- `DownloadsService` + controller: download asset CRUD + track-download counter —
+  `GET|POST|PATCH|DELETE /v1/platform/downloads`.
+- `EmailTemplatesService` + controller: list, get-by-slug, create, update —
+  `GET|POST|PUT /v1/platform/email-templates`.
+- `OnboardingService` + controller: 6-step wizard (profile → branding → invite_users →
+  enable_modules → configure_domain → explore), auto-complete, set `activatedAt` —
+  `GET|PATCH|POST /v1/platform/onboarding/:orgId`.
+- `PlatformModule` registered in `AppModule`.
+
+**Web — Customer Portal `apps/web/src/app/(admin)/portal`**
+- `layout.tsx` — tab navigation with 9 sections.
+- `page.tsx` — overview: subscription status card, quick actions, recent tickets.
+- `billing/page.tsx` — current plan card + plan comparison grid.
+- `invoices/page.tsx` — invoice table with status badges + PDF download.
+- `api-keys/page.tsx` — key list (prefix only), generate modal, one-time reveal,
+  clipboard copy, revoke.
+- `licenses/page.tsx` — seat usage progress bar + module overview + member table.
+- `support/page.tsx` — ticket table with priority and status badges.
+- `support/new/page.tsx` — create-ticket form.
+- `downloads/page.tsx` — featured desktop apps + mobile/CLI/browser list.
+- `branding/page.tsx` — logo, tagline, color pickers, domain, billing contact.
+- `onboarding/page.tsx` — progress bar + step list with completion state.
+
+**Web — Internal Admin Portal `apps/web/src/app/(admin)/platform`**
+- `layout.tsx` — dark-navy header + horizontal nav (8 sections).
+- `page.tsx` — 6 KPI cards, plan distribution bar, recently-provisioned orgs table.
+- `organizations/page.tsx` — org table with search/filter/provision modal.
+- `organizations/[id]/page.tsx` — subscription detail, module toggles, feature flag toggles.
+- `plans/page.tsx` — plan table + create modal.
+- `feature-flags/page.tsx` — global flag toggles + per-org override input + module grid.
+- `support/page.tsx` — all-org ticket table with priority dots + status filter.
+- `audit/page.tsx` — immutable audit log with search, date range, Export CSV.
+- `billing/page.tsx` — MRR / outstanding / collected KPIs + all-org invoice table.
+- `downloads/page.tsx` — download asset management with add/edit modal + download counter.
+- `email-templates/page.tsx` — template table with category badges + edit modal
+  (HTML/text body, subject, active toggle).
+
+**Tests — `apps/api/src/platform`**
+- `platform-organizations/platform-organizations.service.spec.ts` — covers
+  `listOrganizations` (pagination, status filter), `getOrganizationDetail` (not-found,
+  happy-path), `provisionOrganization` (transaction, audit log, plan-not-found),
+  `updateOrgStatus` (status update, audit, not-found),
+  `getOrgBranding` / `updateOrgBranding`.
+- `api-keys/api-keys.service.spec.ts` — covers `listApiKeys` (no hash leak, orgId filter,
+  org-not-found), `createApiKey` (SHA-256 hash stored, prefix format, hash not returned,
+  isActive default), `revokeApiKey` (soft-delete, not-found, wrong-org guard),
+  `validateApiKey` (valid key updates lastUsedAt, invalid returns null, hash-before-query).
+
+---
+
+## [1.7.0] — 2026-06-27
+
+**Prinodia Drive — Secure Enterprise File System.** A full-featured, multi-provider cloud
+storage layer powering every Prinodia product. Org-scoped files and folders with version
+history, recycle bin, fine-grained permissions, share links, search, comments, audit logging,
+quota management, and real-time events. Integrates with Chat, Meet, Canvas, and the existing
+Realtime gateway. All changes are additive; no existing models, APIs, or migrations are touched.
+
+**Breaking changes:** None. All existing services, endpoints, and data are fully preserved.
+
+### Added
+
+**Schema — `packages/database` (Phase 1)**
+- 9 new enums: `DriveItemType` (FILE, FOLDER), `DriveItemStatus` (ACTIVE, TRASHED,
+  PERMANENTLY_DELETED), `DrivePermissionRole` (OWNER, EDITOR, COMMENTER, VIEWER, GUEST),
+  `DriveShareScope`, `DriveStorageProviderType` (LOCAL, S3, AZURE_BLOB, GCS, MINIO),
+  `DrivePreviewStatus`, `DriveVirusScanStatus`, `DriveSyncJobStatus`, `DriveSyncJobType`.
+- 18 new models: `DriveItem` (self-referential folder hierarchy), `DriveVersion`,
+  `DrivePermission`, `DriveShare` (unique token), `DriveFavorite`, `DriveRecent`,
+  `DriveTag`, `DriveComment` (threaded replies), `DriveAudit`, `DriveRetentionPolicy`,
+  `DriveStorageQuota` (per-org), `DriveThumbnail`, `DrivePreview`, `DriveLock`,
+  `DriveCheckout`, `DriveVirusScan`, `DriveSyncJob`, `DriveRecycleBin`.
+- 13 additive back-relations added to the existing `User` model (owned items, versions,
+  permissions, shares, favorites, recents, comments, audits, policies, locks, checkouts,
+  recycle bin, trashed items).
+- SQL migration `20260629100000_v1_7_0_drive_foundation` — fully idempotent
+  (`CREATE TABLE IF NOT EXISTS`, `DO $$ BEGIN … EXCEPTION WHEN duplicate_object`).
+
+**API — `apps/api/src/drive` (Phases 2–4)**
+- `DriveStorageService` + `LocalDriveProvider`: swappable storage abstraction; provider
+  selected via `DRIVE_STORAGE_PROVIDER` env var (default `LOCAL`); storage key convention
+  `{orgId}/{year}/{month}/{itemId}/v{versionNum}/{hex8}{ext}`.
+- `DriveService`: upload, download, rename, move, duplicate, soft-delete, restore,
+  permanent delete, version history, lock/unlock, checkout/checkin, favorites, recents,
+  quota management, audit, async job queueing.
+- `DriveFoldersService`: create folder, list children, breadcrumbs, folder tree, rename.
+- `DrivePermissionsService`: list, grant, revoke fine-grained permissions.
+- `DriveSharesService`: create/revoke expiring/password/max-use share links; public
+  share-token resolver with use-count increment.
+- `DriveSearchService`: dynamic multi-field search (name, type, MIME, owner, folder,
+  meeting, channel, canvas board, tags, date range).
+- `DriveCommentsService`: threaded comments with replies; soft delete; resolve.
+- `DriveController`: 35+ REST endpoints under `/v1/drive` covering all operations.
+- `DriveModule` wired into `AppModule`.
+
+**Realtime — `apps/api/src/realtime` (Phase 4)**
+- `handleDriveJoin` / `handleDriveLeave` WebSocket message handlers (room `drive:{orgId}`).
+- `broadcastDriveEvent(organizationId, event, payload)` server-side emitter for file
+  system change events.
+
+**Web — `apps/web/src/app/(admin)/drive` (Phase 5)**
+- `/admin/drive` — Drive explorer with Browse / Récents / Favoris / Corbeille tabs,
+  grid/list toggle, drag-drop upload zone, breadcrumb navigation, quota bar, new folder
+  modal, and local search filter.
+- `/admin/drive/[id]` — File/folder detail with Propriétés / Versions / Partage /
+  Commentaires tabs; version history with download links; share link management; threaded
+  comments; file download and trash actions.
+- Drive nav item added to `AdminSidebar`.
+
+**Tests — `apps/api/src/drive` (Phase 6)**
+- `drive.service.spec.ts`: 18 unit tests — `listItems`, `getItem` (not found),
+  `uploadFile` (happy path, bad parent, quota exceeded), `trashItem`, `restoreItem`,
+  `lockItem` (happy path + conflict), `toggleFavorite` (add + remove),
+  `permanentlyDeleteItem` (storage deletion + forbidden guard), `getQuota`.
+  All 18 pass (`cd apps/api && npx jest src/drive/drive.service.spec.ts`).
+
+### Technical notes
+- Org scoping uses `actor.ministryId ?? actor.departmentId ?? actor.divisionId ?? "global"`
+  — consistent with Canvas module; no changes to `AuthenticatedUser`.
+- Recycle bin TTL: 30 days (`RECYCLE_TTL_DAYS = 30`).
+- Quota default: 10 GB per org (`DriveStorageQuota` upserted on first access).
+- All Prisma access via `private get db(): AnyPrisma` sandbox pattern.
+
+---
+
 ## [1.6.0] — 2026-06-27
 
 **Prinodia Canvas — Live Collaborative Workspace Platform.** A full infinite-canvas

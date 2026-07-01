@@ -759,4 +759,31 @@ export class RealtimeGateway implements OnGatewayInit, OnGatewayConnection, OnGa
   ): void {
     this.server.to(`canvas:${payload.boardId}`).emit("canvas_comment_created", payload);
   }
+
+  // ── Drive v1.7.0 — org-scoped file system events ─────────────────────────
+  // Room key: `drive:{organizationId}`
+  // Clients join on mount and receive push notifications for all drive mutations.
+
+  @SubscribeMessage("drive_join")
+  handleDriveJoin(
+    @ConnectedSocket()
+    client: import("socket.io").Socket & { data: { userId: string; displayName: string } },
+    @MessageBody() payload: { organizationId: string },
+  ): void {
+    void client.join(`drive:${payload.organizationId}`);
+  }
+
+  @SubscribeMessage("drive_leave")
+  handleDriveLeave(
+    @ConnectedSocket()
+    client: import("socket.io").Socket & { data: { userId: string; displayName: string } },
+    @MessageBody() payload: { organizationId: string },
+  ): void {
+    void client.leave(`drive:${payload.organizationId}`);
+  }
+
+  /** Called by DriveService to push changes to all org members in real time. */
+  broadcastDriveEvent(organizationId: string, event: string, payload: unknown): void {
+    this.server.to(`drive:${organizationId}`).emit(event, payload);
+  }
 }

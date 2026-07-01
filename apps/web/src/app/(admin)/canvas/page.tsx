@@ -27,7 +27,11 @@ interface CanvasBoard {
   background: string;
   thumbnailUrl?: string;
   owner: { id: string; displayName: string; avatarUrl?: string };
-  participants: { id: string; role: string; user: { id: string; displayName: string; avatarUrl?: string } }[];
+  participants: {
+    id: string;
+    role: string;
+    user: { id: string; displayName: string; avatarUrl?: string };
+  }[];
   _count: { elements: number; comments: number; sessions: number };
 }
 
@@ -98,7 +102,9 @@ function Avatar({ name, url, size = "sm" }: { name: string; url?: string; size?:
   const cls = size === "xs" ? "h-5 w-5 text-[9px]" : "h-7 w-7 text-xs";
   if (url) return <img src={url} alt={name} className={`${cls} rounded-full object-cover`} />;
   return (
-    <div className={`${cls} rounded-full bg-indigo-600 flex items-center justify-center text-white font-semibold`}>
+    <div
+      className={`${cls} rounded-full bg-indigo-600 flex items-center justify-center text-white font-semibold`}
+    >
       {name.slice(0, 2).toUpperCase()}
     </div>
   );
@@ -129,7 +135,11 @@ function BoardCard({ board }: { board: CanvasBoard }) {
         {board.isLocked && (
           <div className="absolute top-2 right-2 bg-black/60 text-white text-[10px] px-1.5 py-0.5 rounded flex items-center gap-1">
             <svg className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M10 1a4.5 4.5 0 00-4.5 4.5V9H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-.5V5.5A4.5 4.5 0 0010 1zm3 8V5.5a3 3 0 10-6 0V9h6z" clipRule="evenodd" />
+              <path
+                fillRule="evenodd"
+                d="M10 1a4.5 4.5 0 00-4.5 4.5V9H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-.5V5.5A4.5 4.5 0 0010 1zm3 8V5.5a3 3 0 10-6 0V9h6z"
+                clipRule="evenodd"
+              />
             </svg>
             Verrouillé
           </div>
@@ -142,7 +152,9 @@ function BoardCard({ board }: { board: CanvasBoard }) {
           <h3 className="text-sm font-semibold text-white truncate group-hover:text-indigo-300 transition-colors">
             {board.title}
           </h3>
-          <span className={`shrink-0 text-[10px] font-medium px-2 py-0.5 rounded-full ${typeColor}`}>
+          <span
+            className={`shrink-0 text-[10px] font-medium px-2 py-0.5 rounded-full ${typeColor}`}
+          >
             {typeLabel}
           </span>
         </div>
@@ -155,7 +167,12 @@ function BoardCard({ board }: { board: CanvasBoard }) {
           {/* Participants */}
           <div className="flex -space-x-1.5">
             {board.participants.slice(0, 4).map((p) => (
-              <Avatar key={p.id} name={p.user.displayName} {...(p.user.avatarUrl ? { url: p.user.avatarUrl } : {})} size="xs" />
+              <Avatar
+                key={p.id}
+                name={p.user.displayName}
+                {...(p.user.avatarUrl ? { url: p.user.avatarUrl } : {})}
+                size="xs"
+              />
             ))}
             {board.participants.length > 4 && (
               <div className="h-5 w-5 rounded-full bg-gray-700 flex items-center justify-center text-[9px] text-gray-300">
@@ -209,9 +226,7 @@ function TemplateCard({
           </span>
         )}
       </div>
-      {tpl.description && (
-        <p className="text-xs text-gray-400 line-clamp-2">{tpl.description}</p>
-      )}
+      {tpl.description && <p className="text-xs text-gray-400 line-clamp-2">{tpl.description}</p>}
       <div className="text-[11px] text-gray-600">{tpl.useCount} utilisations</div>
     </button>
   );
@@ -249,7 +264,10 @@ function CreateBoardModal({
     e.preventDefault();
     if (!title.trim()) return;
     setLoading(true);
-    const data: { title: string; boardType: string; templateId?: string } = { title: title.trim(), boardType };
+    const data: { title: string; boardType: string; templateId?: string } = {
+      title: title.trim(),
+      boardType,
+    };
     if (defaultTemplateId) data.templateId = defaultTemplateId;
     onCreate(data);
   }
@@ -268,7 +286,9 @@ function CreateBoardModal({
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div>
-            <label className="block text-xs font-medium text-gray-400 mb-1.5">Titre du tableau</label>
+            <label className="block text-xs font-medium text-gray-400 mb-1.5">
+              Titre du tableau
+            </label>
             <input
               autoFocus
               value={title}
@@ -279,7 +299,9 @@ function CreateBoardModal({
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-gray-400 mb-1.5">Type de tableau</label>
+            <label className="block text-xs font-medium text-gray-400 mb-1.5">
+              Type de tableau
+            </label>
             <div className="grid grid-cols-2 gap-2">
               {Object.entries(BOARD_TYPE_LABELS).map(([type, label]) => (
                 <button
@@ -389,7 +411,11 @@ function CanvasDashboardContent() {
           </p>
         </div>
         <button
-          onClick={() => { setCreateDefaultType(undefined); setCreateDefaultTemplate(undefined); setShowCreate(true); }}
+          onClick={() => {
+            setCreateDefaultType(undefined);
+            setCreateDefaultTemplate(undefined);
+            setShowCreate(true);
+          }}
           className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium rounded-lg transition-colors"
         >
           <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
@@ -408,12 +434,18 @@ function CanvasDashboardContent() {
 
       {/* Quick create tiles */}
       <section>
-        <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Démarrer rapidement</h2>
+        <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+          Démarrer rapidement
+        </h2>
         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2">
           {Object.entries(BOARD_TYPE_LABELS).map(([type, label]) => (
             <button
               key={type}
-              onClick={() => { setCreateDefaultType(type); setCreateDefaultTemplate(undefined); setShowCreate(true); }}
+              onClick={() => {
+                setCreateDefaultType(type);
+                setCreateDefaultTemplate(undefined);
+                setShowCreate(true);
+              }}
               className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-gray-900 border border-white/10 hover:border-indigo-500/40 hover:bg-gray-800/60 transition-all text-center"
             >
               <span className="text-2xl">{BOARD_TYPE_ICONS[type]}</span>
@@ -462,8 +494,16 @@ function CanvasDashboardContent() {
             </div>
             {/* Search */}
             <div className="relative">
-              <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z" clipRule="evenodd" />
+              <svg
+                className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-500"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z"
+                  clipRule="evenodd"
+                />
               </svg>
               <input
                 value={search}
@@ -485,7 +525,9 @@ function CanvasDashboardContent() {
           <div className="flex flex-col items-center justify-center py-20 text-center">
             <div className="text-5xl mb-4">🎨</div>
             <p className="text-gray-400 text-sm">
-              {search ? "Aucun tableau ne correspond à votre recherche" : "Aucun tableau pour l'instant"}
+              {search
+                ? "Aucun tableau ne correspond à votre recherche"
+                : "Aucun tableau pour l'instant"}
             </p>
             <button
               onClick={() => setShowCreate(true)}
@@ -517,7 +559,11 @@ function CanvasDashboardContent() {
 
 export default function CanvasPage() {
   return (
-    <Suspense fallback={<div className="flex items-center justify-center h-64 text-gray-400">Chargement...</div>}>
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center h-64 text-gray-400">Chargement...</div>
+      }
+    >
       <CanvasDashboardContent />
     </Suspense>
   );

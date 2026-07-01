@@ -127,6 +127,18 @@ function SquaresPlusIcon() {
   );
 }
 
+function FolderOpenIcon() {
+  return (
+    <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+      <path
+        fillRule="evenodd"
+        d="M2 4.75A.75.75 0 012.75 4h4.5a.75.75 0 01.53.22l1.5 1.5h5.97A.75.75 0 0116 6.5v1.25a.75.75 0 01-1.5 0V7.25H3.25v7.5a.25.25 0 00.25.25h12.5a.25.25 0 00.25-.25v-5a.75.75 0 011.5 0v5A1.75 1.75 0 0116 16.5H3.5A1.75 1.75 0 011.75 14.75V5.5c0-.965.785-1.75 1.75-1.75H8.19l1.28 1.28H2.75A.75.75 0 012 4.75z"
+        clipRule="evenodd"
+      />
+    </svg>
+  );
+}
+
 function ChatBubbleIcon() {
   return (
     <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
@@ -451,6 +463,11 @@ const NAV_SECTION_COLLAB: NavItem[] = [
     href: "/admin/canvas",
     label: "Canvas",
     icon: <SquaresPlusIcon />,
+  },
+  {
+    href: "/admin/drive",
+    label: "Drive",
+    icon: <FolderOpenIcon />,
   },
   {
     href: "/admin/messages",

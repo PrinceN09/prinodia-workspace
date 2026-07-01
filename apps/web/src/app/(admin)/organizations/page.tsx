@@ -146,7 +146,12 @@ export default function OrganizationsPage() {
               <div className="border-b border-slate-200 px-6 py-4">
                 <h2 className="text-base font-semibold text-slate-900">Nouvelle organisation</h2>
               </div>
-              <form onSubmit={(e) => { void handleSubmit(onCreate)(e); }} className="px-6 py-4 space-y-4">
+              <form
+                onSubmit={(e) => {
+                  void handleSubmit(onCreate)(e);
+                }}
+                className="px-6 py-4 space-y-4"
+              >
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="text-xs font-medium text-slate-700">Nom *</label>

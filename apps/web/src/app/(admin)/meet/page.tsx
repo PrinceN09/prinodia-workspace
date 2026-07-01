@@ -127,8 +127,16 @@ function CanvasLaunchButton({
       {loading ? "Ouverture..." : "Ouvrir le Canvas collaboratif"}
       {!loading && (
         <svg className="ml-auto w-3 h-3 opacity-50" viewBox="0 0 20 20" fill="currentColor">
-          <path fillRule="evenodd" d="M4.25 5.5a.75.75 0 00-.75.75v8.5c0 .414.336.75.75.75h8.5a.75.75 0 00.75-.75v-4a.75.75 0 011.5 0v4A2.25 2.25 0 0112.75 17h-8.5A2.25 2.25 0 012 14.75v-8.5A2.25 2.25 0 014.25 4h5a.75.75 0 010 1.5h-5z" clipRule="evenodd" />
-          <path fillRule="evenodd" d="M6.194 12.753a.75.75 0 001.06.053L16.5 4.44v2.81a.75.75 0 001.5 0v-4.5a.75.75 0 00-.75-.75h-4.5a.75.75 0 000 1.5h2.553l-9.056 8.194a.75.75 0 00-.053 1.06z" clipRule="evenodd" />
+          <path
+            fillRule="evenodd"
+            d="M4.25 5.5a.75.75 0 00-.75.75v8.5c0 .414.336.75.75.75h8.5a.75.75 0 00.75-.75v-4a.75.75 0 011.5 0v4A2.25 2.25 0 0112.75 17h-8.5A2.25 2.25 0 012 14.75v-8.5A2.25 2.25 0 014.25 4h5a.75.75 0 010 1.5h-5z"
+            clipRule="evenodd"
+          />
+          <path
+            fillRule="evenodd"
+            d="M6.194 12.753a.75.75 0 001.06.053L16.5 4.44v2.81a.75.75 0 001.5 0v-4.5a.75.75 0 00-.75-.75h-4.5a.75.75 0 000 1.5h2.553l-9.056 8.194a.75.75 0 00-.053 1.06z"
+            clipRule="evenodd"
+          />
         </svg>
       )}
     </button>
@@ -225,13 +233,7 @@ function Avatar({
 
 // ─── Meeting Card ─────────────────────────────────────────────────────────────
 
-function MeetingCard({
-  meeting,
-  onClick,
-}: {
-  meeting: Meeting;
-  onClick: () => void;
-}) {
+function MeetingCard({ meeting, onClick }: { meeting: Meeting; onClick: () => void }) {
   const isLive = meeting.status === "IN_PROGRESS";
 
   return (
@@ -273,7 +275,8 @@ function MeetingCard({
               )}
             </div>
             <span className="text-xs text-gray-400">
-              {meeting._count.participants} participant{meeting._count.participants !== 1 ? "s" : ""}
+              {meeting._count.participants} participant
+              {meeting._count.participants !== 1 ? "s" : ""}
             </span>
             {meeting._count.recordings > 0 && (
               <span className="text-xs text-gray-400 flex items-center gap-1">
@@ -293,13 +296,7 @@ function MeetingCard({
 
 // ─── Participant Tile ─────────────────────────────────────────────────────────
 
-function ParticipantTile({
-  participant,
-  isMe,
-}: {
-  participant: MeetParticipant;
-  isMe: boolean;
-}) {
+function ParticipantTile({ participant, isMe }: { participant: MeetParticipant; isMe: boolean }) {
   return (
     <div className="relative bg-gray-900 rounded-lg overflow-hidden aspect-video flex items-center justify-center">
       {participant.isVideoOff ? (
@@ -328,9 +325,7 @@ function ParticipantTile({
               />
             </svg>
           )}
-          {participant.isHandRaised && (
-            <span className="text-yellow-400 text-xs">✋</span>
-          )}
+          {participant.isHandRaised && <span className="text-yellow-400 text-xs">✋</span>}
           {participant.liveRole === "HOST" && (
             <span className="bg-indigo-600 text-white text-[9px] font-bold px-1 rounded">HOST</span>
           )}
@@ -414,9 +409,7 @@ function MeetingLobby({
             </div>
           </div>
 
-          {meeting.description && (
-            <p className="text-sm text-gray-600">{meeting.description}</p>
-          )}
+          {meeting.description && <p className="text-sm text-gray-600">{meeting.description}</p>}
 
           {/* Settings row */}
           <div className="flex flex-wrap gap-2">
@@ -436,7 +429,8 @@ function MeetingLobby({
               </span>
             )}
             <span className="px-2 py-1 bg-gray-50 text-gray-600 text-xs rounded-full border border-gray-200">
-              {meeting._count.participants} participant{meeting._count.participants !== 1 ? "s" : ""}
+              {meeting._count.participants} participant
+              {meeting._count.participants !== 1 ? "s" : ""}
             </span>
           </div>
 
@@ -528,11 +522,15 @@ function LiveMeetingView({
   const activeParticipants = meeting.participants.filter((p) => p.joinedAt && !p.leftAt);
 
   useEffect(() => {
-    void apiGet<Poll[]>(`/v1/meet/${meeting.id}/polls`).then(setPolls).catch(() => null);
-    void apiGet<Recording[]>(`/v1/meet/${meeting.id}/recordings`).then((recs) => {
-      setRecordings(recs);
-      setIsRecording(recs.some((r) => r.status === "RECORDING"));
-    }).catch(() => null);
+    void apiGet<Poll[]>(`/v1/meet/${meeting.id}/polls`)
+      .then(setPolls)
+      .catch(() => null);
+    void apiGet<Recording[]>(`/v1/meet/${meeting.id}/recordings`)
+      .then((recs) => {
+        setRecordings(recs);
+        setIsRecording(recs.some((r) => r.status === "RECORDING"));
+      })
+      .catch(() => null);
   }, [meeting.id]);
 
   async function toggleMute() {
@@ -668,17 +666,11 @@ function LiveMeetingView({
                       key={p.id}
                       className={`flex items-center gap-2 p-1.5 rounded-lg ${p.isInWaitingRoom ? "bg-yellow-900/30 border border-yellow-700/40" : ""}`}
                     >
-                      <Avatar
-                        name={p.user.displayName}
-                        url={p.user.avatarUrl}
-                        size={28}
-                      />
+                      <Avatar name={p.user.displayName} url={p.user.avatarUrl} size={28} />
                       <div className="flex-1 min-w-0">
                         <p className="text-white text-xs font-medium truncate">
                           {p.user.displayName}
-                          {p.userId === myId && (
-                            <span className="text-gray-400 ml-1">(vous)</span>
-                          )}
+                          {p.userId === myId && <span className="text-gray-400 ml-1">(vous)</span>}
                         </p>
                         <p className="text-gray-500 text-[10px]">
                           {p.isInWaitingRoom
@@ -692,14 +684,16 @@ function LiveMeetingView({
                       </div>
                       <div className="flex gap-1">
                         {p.isAudioMuted && (
-                          <span className="text-red-400 text-xs" title="Muet">🔇</span>
+                          <span className="text-red-400 text-xs" title="Muet">
+                            🔇
+                          </span>
                         )}
                         {p.isVideoOff && (
-                          <span className="text-red-400 text-xs" title="Caméra off">📵</span>
+                          <span className="text-red-400 text-xs" title="Caméra off">
+                            📵
+                          </span>
                         )}
-                        {p.isHandRaised && (
-                          <span className="text-yellow-400 text-xs">✋</span>
-                        )}
+                        {p.isHandRaised && <span className="text-yellow-400 text-xs">✋</span>}
                       </div>
                       {/* Host: admit from waiting */}
                       {canHostControl && p.isInWaitingRoom && (
@@ -880,13 +874,7 @@ function LiveMeetingView({
 
 // ─── Post-Meeting View ────────────────────────────────────────────────────────
 
-function PostMeetingView({
-  meeting,
-  onBack,
-}: {
-  meeting: Meeting;
-  onBack: () => void;
-}) {
+function PostMeetingView({ meeting, onBack }: { meeting: Meeting; onBack: () => void }) {
   const [recordings, setRecordings] = useState<Recording[]>([]);
   const [summaryText, setSummaryText] = useState("");
   const [isSaving, setIsSaving] = useState(false);
@@ -901,8 +889,7 @@ function PostMeetingView({
   const duration =
     meeting.liveStartedAt && meeting.liveEndedAt
       ? Math.floor(
-          (new Date(meeting.liveEndedAt).getTime() -
-            new Date(meeting.liveStartedAt).getTime()) /
+          (new Date(meeting.liveEndedAt).getTime() - new Date(meeting.liveStartedAt).getTime()) /
             1000,
         )
       : null;
@@ -935,9 +922,7 @@ function PostMeetingView({
         {/* Stats */}
         <div className="grid grid-cols-3 gap-4">
           <div className="bg-white rounded-xl border border-gray-200 p-4 text-center">
-            <p className="text-2xl font-bold text-gray-900">
-              {meeting._count.participants}
-            </p>
+            <p className="text-2xl font-bold text-gray-900">{meeting._count.participants}</p>
             <p className="text-xs text-gray-500 mt-1">Participants</p>
           </div>
           <div className="bg-white rounded-xl border border-gray-200 p-4 text-center">
@@ -958,10 +943,7 @@ function PostMeetingView({
             <h2 className="font-semibold text-gray-900 mb-3 text-sm">Enregistrements</h2>
             <div className="space-y-2">
               {recordings.map((rec) => (
-                <div
-                  key={rec.id}
-                  className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg"
-                >
+                <div key={rec.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
                   <div
                     className={`w-2 h-2 rounded-full ${rec.status === "READY" ? "bg-green-500" : rec.status === "RECORDING" ? "bg-red-500 animate-pulse" : rec.status === "PROCESSING" ? "bg-yellow-500" : "bg-gray-400"}`}
                   />
@@ -970,8 +952,7 @@ function PostMeetingView({
                       {rec.filename ?? "Enregistrement"}
                     </p>
                     <p className="text-xs text-gray-400">
-                      {rec.durationSeconds ? fmtDuration(rec.durationSeconds) : "—"} •{" "}
-                      {rec.status}
+                      {rec.durationSeconds ? fmtDuration(rec.durationSeconds) : "—"} • {rec.status}
                     </p>
                   </div>
                   {rec.downloadUrl && rec.status === "READY" && (
@@ -994,8 +975,8 @@ function PostMeetingView({
         <div className="bg-white rounded-xl border border-gray-200 p-4">
           <h2 className="font-semibold text-gray-900 mb-3 text-sm">Compte-rendu</h2>
           <p className="text-xs text-gray-500 mb-2">
-            Résumé de la réunion — les transcripts et le résumé IA seront disponibles
-            dans une prochaine version.
+            Résumé de la réunion — les transcripts et le résumé IA seront disponibles dans une
+            prochaine version.
           </p>
           <textarea
             className="w-full border border-gray-200 rounded-lg p-3 text-sm text-gray-700 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-300"
@@ -1025,8 +1006,8 @@ function PostMeetingView({
             🤖 Résumé IA — Bientôt disponible
           </p>
           <p className="text-xs text-indigo-500">
-            Le résumé automatique, les décisions et les tâches seront extraits
-            à partir de la transcription par IA dans une prochaine version.
+            Le résumé automatique, les décisions et les tâches seront extraits à partir de la
+            transcription par IA dans une prochaine version.
           </p>
         </div>
       </div>
@@ -1204,25 +1185,12 @@ function MeetPageInner() {
   }
 
   if (view === "lobby") {
-    return (
-      <MeetingLobby
-        meeting={meeting}
-        myId={myId}
-        onJoin={goToLive}
-        onBack={goBack}
-      />
-    );
+    return <MeetingLobby meeting={meeting} myId={myId} onJoin={goToLive} onBack={goBack} />;
   }
 
   if (view === "live") {
     // Reload meeting to get fresh participant data
-    return (
-      <LiveMeetingView
-        meeting={meeting}
-        myId={myId}
-        onEnd={goToEnd}
-      />
-    );
+    return <LiveMeetingView meeting={meeting} myId={myId} onEnd={goToEnd} />;
   }
 
   if (view === "ended") {

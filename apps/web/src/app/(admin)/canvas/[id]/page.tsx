@@ -69,9 +69,19 @@ interface Element {
 }
 
 type Tool =
-  | "select" | "pencil" | "highlighter" | "eraser" | "text"
-  | "sticky" | "shape" | "connector" | "arrow" | "comment"
-  | "code" | "image" | "laser";
+  | "select"
+  | "pencil"
+  | "highlighter"
+  | "eraser"
+  | "text"
+  | "sticky"
+  | "shape"
+  | "connector"
+  | "arrow"
+  | "comment"
+  | "code"
+  | "image"
+  | "laser";
 
 type Panel = "participants" | "comments" | "export" | null;
 
@@ -97,11 +107,19 @@ const ZOOM_LEVELS = [0.1, 0.25, 0.5, 0.75, 1, 1.25, 1.5, 2, 3, 4];
 
 // ─── Small helpers ────────────────────────────────────────────────────────────
 
-function Avatar({ name, url, size = "sm", color }: { name: string; url?: string; size?: "sm" | "xs" | "md"; color?: string }) {
+function Avatar({
+  name,
+  url,
+  size = "sm",
+  color,
+}: {
+  name: string;
+  url?: string;
+  size?: "sm" | "xs" | "md";
+  color?: string;
+}) {
   const cls =
-    size === "xs" ? "h-5 w-5 text-[9px]" :
-    size === "md" ? "h-9 w-9 text-sm" :
-    "h-7 w-7 text-xs";
+    size === "xs" ? "h-5 w-5 text-[9px]" : size === "md" ? "h-9 w-9 text-sm" : "h-7 w-7 text-xs";
   const bg = color ?? "#6366F1";
   if (url) return <img src={url} alt={name} className={`${cls} rounded-full object-cover`} />;
   return (
@@ -116,7 +134,11 @@ function Avatar({ name, url, size = "sm", color }: { name: string; url?: string;
 
 // ─── Toolbar ──────────────────────────────────────────────────────────────────
 
-function Toolbar({ activeTool, onSelect, isLocked }: {
+function Toolbar({
+  activeTool,
+  onSelect,
+  isLocked,
+}: {
   activeTool: Tool;
   onSelect: (t: Tool) => void;
   isLocked: boolean;
@@ -170,7 +192,10 @@ function ParticipantsPanel({ participants }: { participants: Participant[] }) {
       </h3>
       {participants.map((p) => (
         <div key={p.id} className="flex items-center gap-3 py-1">
-          <Avatar name={p.user.displayName} {...(p.user.avatarUrl ? { url: p.user.avatarUrl } : {})} />
+          <Avatar
+            name={p.user.displayName}
+            {...(p.user.avatarUrl ? { url: p.user.avatarUrl } : {})}
+          />
           <div className="flex-1 min-w-0">
             <div className="text-sm text-white truncate">{p.user.displayName}</div>
             <div className={`text-[11px] ${roleColors[p.role] ?? "text-gray-400"}`}>
@@ -188,7 +213,13 @@ function ParticipantsPanel({ participants }: { participants: Participant[] }) {
   );
 }
 
-function CommentsPanel({ comments, onResolve }: { comments: Comment[]; onResolve: (id: string) => void }) {
+function CommentsPanel({
+  comments,
+  onResolve,
+}: {
+  comments: Comment[];
+  onResolve: (id: string) => void;
+}) {
   return (
     <div className="flex flex-col gap-2 p-4 overflow-y-auto">
       <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
@@ -200,7 +231,11 @@ function CommentsPanel({ comments, onResolve }: { comments: Comment[]; onResolve
           className={`rounded-lg border p-3 ${c.isResolved ? "border-white/5 opacity-50" : "border-white/10 bg-gray-800/40"}`}
         >
           <div className="flex items-start gap-2">
-            <Avatar name={c.author.displayName} {...(c.author.avatarUrl ? { url: c.author.avatarUrl } : {})} size="xs" />
+            <Avatar
+              name={c.author.displayName}
+              {...(c.author.avatarUrl ? { url: c.author.avatarUrl } : {})}
+              size="xs"
+            />
             <div className="flex-1 min-w-0">
               <div className="text-[11px] font-medium text-white">{c.author.displayName}</div>
               <p className="text-xs text-gray-300 mt-0.5 leading-relaxed">{c.content}</p>
@@ -241,7 +276,13 @@ const EXPORT_FORMATS = [
   { id: "JSON", label: "JSON", desc: "Données brutes", icon: "{ }" },
 ];
 
-function ExportPanel({ boardId, onExport }: { boardId: string; onExport: (format: string) => void }) {
+function ExportPanel({
+  boardId,
+  onExport,
+}: {
+  boardId: string;
+  onExport: (format: string) => void;
+}) {
   const [exporting, setExporting] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
 
@@ -255,7 +296,9 @@ function ExportPanel({ boardId, onExport }: { boardId: string; onExport: (format
 
   return (
     <div className="flex flex-col gap-2 p-4">
-      <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Exporter</h3>
+      <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+        Exporter
+      </h3>
       {EXPORT_FORMATS.map((f) => (
         <button
           key={f.id}
@@ -274,7 +317,11 @@ function ExportPanel({ boardId, onExport }: { boardId: string; onExport: (format
             <div className="h-3 w-3 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
           ) : (
             <svg className="h-4 w-4 text-gray-600" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M10 3a.75.75 0 01.75.75v10.638l3.96-4.158a.75.75 0 111.08 1.04l-5.25 5.5a.75.75 0 01-1.08 0l-5.25-5.5a.75.75 0 111.08-1.04l3.96 4.158V3.75A.75.75 0 0110 3z" clipRule="evenodd" />
+              <path
+                fillRule="evenodd"
+                d="M10 3a.75.75 0 01.75.75v10.638l3.96-4.158a.75.75 0 111.08 1.04l-5.25 5.5a.75.75 0 01-1.08 0l-5.25-5.5a.75.75 0 111.08-1.04l3.96 4.158V3.75A.75.75 0 0110 3z"
+                clipRule="evenodd"
+              />
             </svg>
           )}
         </button>
@@ -393,14 +440,21 @@ function CanvasSurface({
   }
 
   function onPointerUp(e: React.PointerEvent<SVGSVGElement>) {
-    if (isPanning.current) { isPanning.current = false; return; }
+    if (isPanning.current) {
+      isPanning.current = false;
+      return;
+    }
     if (drawing.current) {
       drawing.current = false;
       if (pathPoints.current.length > 1) {
         onAddElement({
           elementType: activeTool === "highlighter" ? "HIGHLIGHTER_STROKE" : "PENCIL_STROKE",
-          data: { points: pathPoints.current, color: activeTool === "highlighter" ? "#FACC15" : "#FFFFFF" },
-          x: 0, y: 0,
+          data: {
+            points: pathPoints.current,
+            color: activeTool === "highlighter" ? "#FACC15" : "#FFFFFF",
+          },
+          x: 0,
+          y: 0,
         });
       }
       setPencilPath("");
@@ -413,14 +467,17 @@ function CanvasSurface({
     const style = (el.style ?? {}) as Record<string, string>;
 
     if (el.elementType === "PENCIL_STROKE" || el.elementType === "HIGHLIGHTER_STROKE") {
-      const pts = ((el.data as Record<string, unknown>)?.['points'] ?? []) as Array<{ x: number; y: number }>;
+      const pts = ((el.data as Record<string, unknown>)?.["points"] ?? []) as Array<{
+        x: number;
+        y: number;
+      }>;
       if (pts.length < 2) return null;
       const d = pts.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`).join(" ");
       return (
         <path
           key={el.id}
           d={d}
-          stroke={((el.data as Record<string, unknown>)?.['color'] as string) ?? "#fff"}
+          stroke={((el.data as Record<string, unknown>)?.["color"] as string) ?? "#fff"}
           strokeWidth={el.elementType === "HIGHLIGHTER_STROKE" ? 16 : 2}
           strokeOpacity={el.elementType === "HIGHLIGHTER_STROKE" ? 0.5 : 1}
           strokeLinecap="round"
@@ -431,15 +488,18 @@ function CanvasSurface({
     }
 
     if (el.elementType === "STICKY_NOTE") {
-      const color = ((el.data as Record<string, unknown>)?.['color'] as string) ?? "#FACC15";
+      const color = ((el.data as Record<string, unknown>)?.["color"] as string) ?? "#FACC15";
       return (
         <g key={el.id} transform={`translate(${el.x},${el.y})`}>
           <rect
-            width={el.width ?? 160} height={el.height ?? 160}
-            rx={8} fill={color} opacity={0.9}
+            width={el.width ?? 160}
+            height={el.height ?? 160}
+            rx={8}
+            fill={color}
+            opacity={0.9}
           />
           <text x={10} y={28} fontSize={13} fill="#1f2937" fontFamily="system-ui" fontWeight={500}>
-            {((el.data as Record<string, unknown>)?.['text'] as string) ?? "Note..."}
+            {((el.data as Record<string, unknown>)?.["text"] as string) ?? "Note..."}
           </text>
         </g>
       );
@@ -448,8 +508,12 @@ function CanvasSurface({
     if (el.elementType === "TEXT") {
       return (
         <g key={el.id} transform={`translate(${el.x},${el.y})`}>
-          <text fontSize={((el.data as Record<string, unknown>)?.['fontSize'] as number) ?? 16} fill={((el.data as Record<string, unknown>)?.['color'] as string) ?? "#fff"} fontFamily="system-ui">
-            {((el.data as Record<string, unknown>)?.['text'] as string) ?? "Texte..."}
+          <text
+            fontSize={((el.data as Record<string, unknown>)?.["fontSize"] as number) ?? 16}
+            fill={((el.data as Record<string, unknown>)?.["color"] as string) ?? "#fff"}
+            fontFamily="system-ui"
+          >
+            {((el.data as Record<string, unknown>)?.["text"] as string) ?? "Texte..."}
           </text>
         </g>
       );
@@ -459,10 +523,11 @@ function CanvasSurface({
       return (
         <g key={el.id} transform={`translate(${el.x},${el.y})`}>
           <rect
-            width={el.width ?? 120} height={el.height ?? 80}
+            width={el.width ?? 120}
+            height={el.height ?? 80}
             rx={8}
-            fill={((el.style as Record<string, unknown>)?.['fill'] as string) ?? "none"}
-            stroke={((el.style as Record<string, unknown>)?.['stroke'] as string) ?? "#6366F1"}
+            fill={((el.style as Record<string, unknown>)?.["fill"] as string) ?? "none"}
+            stroke={((el.style as Record<string, unknown>)?.["stroke"] as string) ?? "#6366F1"}
             strokeWidth={2}
           />
         </g>
@@ -480,7 +545,7 @@ function CanvasSurface({
           <circle cx={28} cy={14} r={5} fill="#f59e0b" />
           <circle cx={42} cy={14} r={5} fill="#10b981" />
           <text x={12} y={48} fontSize={12} fill="#a5b4fc" fontFamily="monospace" opacity={0.9}>
-            {((el.data as Record<string, unknown>)?.['language'] as string) ?? "// Code..."}
+            {((el.data as Record<string, unknown>)?.["language"] as string) ?? "// Code..."}
           </text>
         </g>
       );
@@ -490,11 +555,15 @@ function CanvasSurface({
   }
 
   const cursor =
-    activeTool === "select" ? "default" :
-    activeTool === "pencil" || activeTool === "highlighter" ? "crosshair" :
-    activeTool === "eraser" ? "cell" :
-    activeTool === "laser" ? "crosshair" :
-    "crosshair";
+    activeTool === "select"
+      ? "default"
+      : activeTool === "pencil" || activeTool === "highlighter"
+        ? "crosshair"
+        : activeTool === "eraser"
+          ? "cell"
+          : activeTool === "laser"
+            ? "crosshair"
+            : "crosshair";
 
   return (
     <svg
@@ -508,8 +577,14 @@ function CanvasSurface({
     >
       {/* Dot grid */}
       <defs>
-        <pattern id="grid" x={vp.x % (20 * vp.zoom)} y={vp.y % (20 * vp.zoom)}
-          width={20 * vp.zoom} height={20 * vp.zoom} patternUnits="userSpaceOnUse">
+        <pattern
+          id="grid"
+          x={vp.x % (20 * vp.zoom)}
+          y={vp.y % (20 * vp.zoom)}
+          width={20 * vp.zoom}
+          height={20 * vp.zoom}
+          patternUnits="userSpaceOnUse"
+        >
           <circle cx={1} cy={1} r={0.5} fill="rgba(255,255,255,0.08)" />
         </pattern>
       </defs>
@@ -547,12 +622,34 @@ function ZoomControls({ zoom, onZoom }: { zoom: number; onZoom: (z: number) => v
 
   return (
     <div className="absolute bottom-24 right-5 z-20 flex flex-col items-center gap-1 bg-gray-900 border border-white/10 rounded-xl p-1.5 shadow-xl">
-      <button onClick={() => stepZoom(1)} className="h-7 w-7 flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg text-lg transition-colors">+</button>
+      <button
+        onClick={() => stepZoom(1)}
+        className="h-7 w-7 flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg text-lg transition-colors"
+      >
+        +
+      </button>
       <span className="text-[11px] text-gray-500 w-10 text-center">{Math.round(zoom * 100)}%</span>
-      <button onClick={() => stepZoom(-1)} className="h-7 w-7 flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg text-lg transition-colors">−</button>
+      <button
+        onClick={() => stepZoom(-1)}
+        className="h-7 w-7 flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg text-lg transition-colors"
+      >
+        −
+      </button>
       <div className="w-full h-px bg-white/10 my-0.5" />
-      <button onClick={() => onZoom(1)} className="h-7 w-7 flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg text-[10px] transition-colors" title="Réinitialiser">1:1</button>
-      <button onClick={() => onZoom(0.5)} className="h-7 w-7 flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg text-[10px] transition-colors" title="Vue d'ensemble">⊡</button>
+      <button
+        onClick={() => onZoom(1)}
+        className="h-7 w-7 flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg text-[10px] transition-colors"
+        title="Réinitialiser"
+      >
+        1:1
+      </button>
+      <button
+        onClick={() => onZoom(0.5)}
+        className="h-7 w-7 flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg text-[10px] transition-colors"
+        title="Vue d'ensemble"
+      >
+        ⊡
+      </button>
     </div>
   );
 }
@@ -583,7 +680,7 @@ function MiniMap({ elementCount }: { elementCount: number }) {
 
 function CanvasBoardContent() {
   const params = useParams();
-  const boardId = params['id'] as string;
+  const boardId = params["id"] as string;
   const router = useRouter();
 
   const [board, setBoard] = useState<Board | null>(null);
@@ -618,8 +715,16 @@ function CanvasBoardContent() {
   // Keyboard shortcuts for tools
   useEffect(() => {
     const map: Record<string, Tool> = {
-      v: "select", p: "pencil", h: "highlighter", e: "eraser",
-      t: "text", s: "sticky", r: "shape", c: "comment", k: "code", l: "laser",
+      v: "select",
+      p: "pencil",
+      h: "highlighter",
+      e: "eraser",
+      t: "text",
+      s: "sticky",
+      r: "shape",
+      c: "comment",
+      k: "code",
+      l: "laser",
     };
     function onKey(ev: KeyboardEvent) {
       if (ev.target instanceof HTMLInputElement || ev.target instanceof HTMLTextAreaElement) return;
@@ -650,7 +755,7 @@ function CanvasBoardContent() {
   async function handleResolveComment(commentId: string) {
     try {
       await apiPost(`/v1/canvas/${boardId}/comments/${commentId}/resolve`);
-      setComments((prev) => prev.map((c) => c.id === commentId ? { ...c, isResolved: true } : c));
+      setComments((prev) => prev.map((c) => (c.id === commentId ? { ...c, isResolved: true } : c)));
     } catch {
       // ignore
     }
@@ -685,7 +790,9 @@ function CanvasBoardContent() {
     return (
       <div className="flex flex-col items-center justify-center h-full gap-4">
         <p className="text-red-400">{error ?? "Tableau introuvable"}</p>
-        <Link href="/admin/canvas" className="text-sm text-indigo-400 hover:underline">← Retour aux tableaux</Link>
+        <Link href="/admin/canvas" className="text-sm text-indigo-400 hover:underline">
+          ← Retour aux tableaux
+        </Link>
       </div>
     );
   }
@@ -696,7 +803,11 @@ function CanvasBoardContent() {
       <div className="h-12 shrink-0 flex items-center gap-3 px-4 bg-gray-900 border-b border-white/10 z-30">
         <Link href="/admin/canvas" className="text-gray-500 hover:text-white transition-colors">
           <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-            <path fillRule="evenodd" d="M17 10a.75.75 0 01-.75.75H5.612l4.158 3.96a.75.75 0 11-1.04 1.08l-5.5-5.25a.75.75 0 010-1.08l5.5-5.25a.75.75 0 111.04 1.08L5.612 9.25H16.25A.75.75 0 0117 10z" clipRule="evenodd" />
+            <path
+              fillRule="evenodd"
+              d="M17 10a.75.75 0 01-.75.75H5.612l4.158 3.96a.75.75 0 11-1.04 1.08l-5.5-5.25a.75.75 0 010-1.08l5.5-5.25a.75.75 0 111.04 1.08L5.612 9.25H16.25A.75.75 0 0117 10z"
+              clipRule="evenodd"
+            />
           </svg>
         </Link>
 
@@ -713,7 +824,11 @@ function CanvasBoardContent() {
         <div className="flex -space-x-1.5 ml-2">
           {board.participants.slice(0, 5).map((p) => (
             <div key={p.id} title={p.user.displayName}>
-              <Avatar name={p.user.displayName} {...(p.user.avatarUrl ? { url: p.user.avatarUrl } : {})} size="xs" />
+              <Avatar
+                name={p.user.displayName}
+                {...(p.user.avatarUrl ? { url: p.user.avatarUrl } : {})}
+                size="xs"
+              />
             </div>
           ))}
           {board.participants.length > 5 && (
@@ -748,7 +863,9 @@ function CanvasBoardContent() {
               key={p}
               onClick={() => setActivePanel(activePanel === p ? null : p)}
               className={`h-7 w-7 flex items-center justify-center text-sm rounded-lg transition-all ${
-                activePanel === p ? "bg-indigo-600 text-white" : "text-gray-400 hover:text-white hover:bg-gray-800"
+                activePanel === p
+                  ? "bg-indigo-600 text-white"
+                  : "text-gray-400 hover:text-white hover:bg-gray-800"
               }`}
               title={p}
             >
@@ -790,7 +907,11 @@ function CanvasBoardContent() {
             {board.isLocked && (
               <div className="flex items-center gap-1.5 bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs px-3 py-1.5 rounded-full">
                 <svg className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M10 1a4.5 4.5 0 00-4.5 4.5V9H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-.5V5.5A4.5 4.5 0 0010 1zm3 8V5.5a3 3 0 10-6 0V9h6z" clipRule="evenodd" />
+                  <path
+                    fillRule="evenodd"
+                    d="M10 1a4.5 4.5 0 00-4.5 4.5V9H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-.5V5.5A4.5 4.5 0 0010 1zm3 8V5.5a3 3 0 10-6 0V9h6z"
+                    clipRule="evenodd"
+                  />
                 </svg>
                 Tableau verrouillé — lecture seule
               </div>
@@ -807,9 +928,7 @@ function CanvasBoardContent() {
             {activePanel === "comments" && (
               <CommentsPanel comments={comments} onResolve={handleResolveComment} />
             )}
-            {activePanel === "export" && (
-              <ExportPanel boardId={boardId} onExport={handleExport} />
-            )}
+            {activePanel === "export" && <ExportPanel boardId={boardId} onExport={handleExport} />}
           </div>
         )}
       </div>
@@ -819,11 +938,13 @@ function CanvasBoardContent() {
 
 export default function CanvasBoardPage() {
   return (
-    <Suspense fallback={
-      <div className="flex items-center justify-center h-screen bg-gray-950">
-        <div className="h-8 w-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-      </div>
-    }>
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center h-screen bg-gray-950">
+          <div className="h-8 w-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+        </div>
+      }
+    >
       <CanvasBoardContent />
     </Suspense>
   );
